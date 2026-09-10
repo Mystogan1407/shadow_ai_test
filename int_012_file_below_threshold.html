@@ -21,13 +21,12 @@
     .sk { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
     .sv { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
     .sv.g{color:var(--pass);} .sv.r{color:var(--fail);} .sv.b{color:var(--accent);}
-    .callout { border-radius:8px; padding:12px; font-size:12px; line-height:1.5; }
-    .callout-warn { background:#1a1208; border:1px solid #5a3a00; color:var(--warn); }
-    .callout strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    .callout-warn { background:#1a1208; border:1px solid #5a3a00; border-radius:8px; padding:12px; font-size:12px; color:var(--warn); line-height:1.5; }
+    .callout-warn strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
     .btn { width:100%; padding:9px 12px; border-radius:6px; border:1px solid var(--border); cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:500; display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); transition:all .15s; }
     .btn-primary { background:var(--accent); border-color:var(--accent); color:#fff; }
     .btn-primary:hover { opacity:.88; }
-    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:150px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:160px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
     .lp{color:var(--pass);} .lw{color:var(--warn);} .li{color:var(--accent);}
     .chat-panel { display:flex; flex-direction:column; height:calc(100vh - 53px); background:#fff; }
     .fake-bar { background:#f2f2f2; border-bottom:1px solid #d8d8d8; padding:7px 16px; display:flex; align-items:center; gap:10px; }
@@ -36,23 +35,23 @@
     .iso-badge { font-size:10px; background:#1a73e8; color:#fff; border-radius:3px; padding:2px 6px; font-weight:600; }
     .thread-area { flex:1; overflow-y:auto; padding:28px 32px; display:flex; flex-direction:column; gap:14px; }
     .msg { max-width:580px; }
-    .msg-ai { align-self:flex-start; }
     .msg-ai p { background:#f7f7f8; border-radius:18px 18px 18px 4px; padding:12px 18px; font-size:14px; color:#1a1a1a; display:inline-block; line-height:1.55; }
     .input-dock { padding:12px 20px 20px; flex-shrink:0; }
-    .duck-box { background:#fff; border:1.5px solid #e5e5e7; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; transition:border-color .15s; }
-    #ai-prompt { width:100%; background:transparent; border:none; outline:none; color:#1a1a1a; font-family:var(--sans); font-size:15px; line-height:1.55; padding:14px 16px 8px; resize:none; min-height:54px; }
+    .duck-box { background:#fff; border:1.5px solid #e5e5e7; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); transition:border-color .15s; }
+    .duck-box:focus-within { border-color:#b0b0b8; }
+    #ai-prompt { width:100%; background:transparent; border:none; outline:none; color:#1a1a1a; font-family:var(--sans); font-size:15px; line-height:1.55; padding:14px 16px 8px; resize:none; min-height:54px; border-radius:16px 16px 0 0; display:block; }
     #ai-prompt::placeholder { color:#8e8e93; }
-    .attach-zone { border-top:1.5px dashed #e5e5e7; margin:0 10px; padding:10px 8px; display:flex; align-items:center; gap:8px; font-size:13px; color:#8e8e93; cursor:pointer; border-radius:8px; transition:all .12s; position:relative; }
-    .attach-zone:hover,.attach-zone.drag-over { background:#f7f7f8; }
-    .attach-zone.file-ok { background:#f0fdf4; border-color:#22c55e; color:#166534; }
-    .attach-zone.file-bad { background:#fef2f2; border-color:#ef4444; color:#991b1b; }
-    .attach-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
-    .duck-toolbar { display:flex; align-items:center; padding:8px 10px 10px; gap:6px; }
-    .tool-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid #e5e5e7; border-radius:20px; padding:5px 12px 5px 8px; cursor:pointer; font-size:13px; color:#1a1a1a; font-family:var(--sans); transition:background .12s; }
+    .drop-zone { border-top:1.5px dashed #e5e5e7; padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:#8e8e93; cursor:pointer; transition:all .15s; position:relative; }
+    .drop-zone:hover, .drop-zone.drag-over { background:#f7f7f8; color:#1a1a1a; }
+    .drop-zone.file-ok { background:#f0fdf4; color:#166534; border-color:#22c55e; }
+    .drop-zone.file-bad { background:#fef2f2; color:#991b1b; border-color:#ef4444; }
+    .drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .duck-toolbar { display:flex; align-items:center; padding:8px 12px 12px; gap:6px; border-top:1px solid #f0f0f0; }
+    .tool-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid #e5e5e7; border-radius:20px; padding:5px 12px 5px 8px; cursor:pointer; font-size:13px; color:#1a1a1a; font-family:var(--sans); }
     .tool-btn:hover { background:#f7f7f8; }
     .duck-spacer { flex:1; }
     .speed-pill { display:flex; align-items:center; gap:4px; font-size:13px; color:#1a1a1a; background:#f7f7f8; border:1px solid #e5e5e7; border-radius:20px; padding:5px 10px; }
-    .ask-btn { background:#1a1a1a; color:#fff; border:none; border-radius:20px; padding:6px 18px; font-size:13px; font-weight:500; cursor:default; opacity:.35; font-family:var(--sans); }
+    .ask-btn { background:#1a1a1a; color:#fff; border:none; border-radius:20px; padding:6px 18px; font-size:13px; font-weight:500; opacity:.35; font-family:var(--sans); cursor:default; }
     footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:20px; flex-wrap:wrap; }
   </style>
 </head>
@@ -69,17 +68,16 @@
       <div class="spec-block" style="margin-top:8px">
         <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-INT-012</span></div>
         <div class="spec-row"><span class="sk">Type</span><span class="sv r">Negative</span></div>
-        <div class="spec-row"><span class="sk">File size</span><span class="sv">30 bytes</span></div>
+        <div class="spec-row"><span class="sk">File size</span><span class="sv">30 bytes exactly</span></div>
         <div class="spec-row"><span class="sk">Threshold</span><span class="sv">32 bytes</span></div>
-        <div class="spec-row"><span class="sk">Action</span><span class="sv">Drop file, no submit</span></div>
         <div class="spec-row"><span class="sk">Tier 2</span><span class="sv g">✓ on page load</span></div>
         <div class="spec-row"><span class="sk">Expected Tier 3</span><span class="sv r">NONE</span></div>
         <div class="spec-row"><span class="sk">Expected log</span><span class="sv">Tier 2 only</span></div>
       </div>
     </div>
-    <div class="callout callout-warn">
+    <div class="callout-warn">
       <strong>⚠ Negative — Key assertion</strong>
-      30-byte file is below the 32-byte threshold. Tier 3 must NOT fire. Tier 2 fires on page load via Signal C (not from the file drop).
+      30-byte file is below the 32-byte threshold. Tier 3 must NOT fire. Tier 2 fires on page load via Signal C — independent of the file drop.
     </div>
     <div>
       <h2>Actions</h2>
@@ -99,8 +97,8 @@
       <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/int_012_file_below_threshold.html</div>
       <span class="iso-badge">🔒 Isolated</span>
     </div>
-    <div class="thread-area" id="thread">
-      <div class="msg msg-ai"><p>Drop the 30-byte test file here. Do NOT submit. Check Web Logs — only Tier 2 should appear, no Tier 3.</p></div>
+    <div class="thread-area">
+      <div class="msg msg-ai"><p>Drop the 30-byte test file. Do NOT submit. Check Web Logs — only Tier 2 should appear, no Tier 3.</p></div>
     </div>
     <div class="input-dock">
       <div class="duck-box">
@@ -108,11 +106,13 @@
           aria-label="Ask AI — ask anything privately"
           placeholder="Ask anything privately"
           rows="2"></textarea>
-        <div class="attach-zone" id="attach-zone">
+
+        <div class="drop-zone" id="drop-zone">
           <input type="file" id="file-input"/>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-          <span id="attach-label">Attach 30-byte test file here</span>
+          <span id="drop-label">Attach 30-byte test file — drop here or click to browse</span>
         </div>
+
         <div class="duck-toolbar">
           <button class="tool-btn" aria-label="AI sparkle tools">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="currentColor"/><path d="M19 16L19.75 19L23 19.75L19.75 20.5L19 23L18.25 20.5L15 19.75L18.25 19L19 16Z" fill="currentColor" opacity=".5"/></svg>
@@ -129,12 +129,12 @@
 </main>
 <footer>
   <span>SAI-INT-012 · Negative · Related to SAI-INT-008</span>
-  <span>30 B file &lt; 32 B threshold → Tier 3 must NOT fire</span>
+  <span>30 B &lt; 32 B threshold → Tier 3 must NOT fire</span>
   <span>Tier 2 fires on page load via Signal C (independent of file drop)</span>
 </footer>
 <script>
   const logEl = document.getElementById('status-log');
-  const attachZone = document.getElementById('attach-zone');
+  const dropZone = document.getElementById('drop-zone');
   const THRESHOLD = 32;
   function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
   function formatBytes(b){return b<1024?b+' B':(b/1024).toFixed(1)+' KB';}
@@ -142,26 +142,30 @@
   function handleFile(file) {
     if (!file) return;
     const sz = file.size;
-    document.getElementById('attach-label').textContent = (sz < THRESHOLD ? '✓ ' : '⚠ ') + file.name + ' (' + sz + ' B)';
     if (sz < THRESHOLD) {
-      attachZone.classList.add('file-ok');
-      appendLog('file: ' + file.name + ' (' + sz + ' B) — below 32 B threshold', 'lp');
-      appendLog('Tier 3 must NOT fire from this drop', 'lw');
+      dropZone.classList.add('file-ok');
+      document.getElementById('drop-label').textContent = '✓ '+file.name+' ('+sz+' B — below threshold)';
+      appendLog('file: '+file.name+' ('+sz+' B) — below 32 B → Tier 3 must NOT fire', 'lp');
     } else {
-      attachZone.classList.add('file-bad');
-      appendLog('⚠ file is ' + sz + ' B — exceeds threshold! Generate the 30-byte file from sidebar', 'lw');
+      dropZone.classList.add('file-bad');
+      document.getElementById('drop-label').textContent = '⚠ '+file.name+' ('+sz+' B — exceeds threshold!)';
+      appendLog('⚠ file is '+sz+' B — exceeds threshold! Use the 30-byte generated file', 'lw');
     }
   }
-  attachZone.addEventListener('dragover',e=>{e.preventDefault();attachZone.classList.add('drag-over');});
-  attachZone.addEventListener('dragleave',()=>attachZone.classList.remove('drag-over'));
-  attachZone.addEventListener('drop',e=>{e.preventDefault();attachZone.classList.remove('drag-over');handleFile(e.dataTransfer?.files[0]);});
-  document.getElementById('file-input').addEventListener('change',e=>handleFile(e.target.files[0]));
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    handleFile(e.dataTransfer?.files[0]);
+  });
+  document.getElementById('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
 
   function downloadTestFile() {
-    // 29 chars + newline = 30 bytes exactly
-    const blob = new Blob(['ShadowAI_INT012_30B_Test!!!!!\n'],{type:'text/plain'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='shadow_ai_test_30b.txt';a.click();
-    appendLog('generated shadow_ai_test_30b.txt (30 B) — drop it into attach area','li');
+    // exactly 30 bytes: 29 ASCII chars + newline
+    const blob = new Blob(['ShadowAI_INT012_30B_Test!!!!!\n'], {type:'text/plain'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'shadow_ai_test_30b.txt'; a.click();
+    appendLog('generated shadow_ai_test_30b.txt (30 B) — drop it into attach zone', 'li');
   }
 </script>
 </body>
