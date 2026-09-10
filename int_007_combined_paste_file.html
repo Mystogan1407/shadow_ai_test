@@ -50,17 +50,21 @@
     .input-area:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,142,247,.12); }
     #ai-prompt { width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.6; padding:14px 16px 8px; resize:none; min-height:70px; }
     #ai-prompt::placeholder { color:var(--muted); }
-    /* drop zone */
-    .drop-zone {
+    /* attach row — duck.ai pattern: button + hidden input, no overlay tricks */
+    .attach-row {
       border-top:1px dashed var(--border);
-      padding:16px;
-      display:flex; align-items:center; justify-content:center; gap:10px;
-      font-size:12px; color:var(--muted); cursor:pointer;
-      transition:all .15s; position:relative;
+      padding:10px 16px;
+      display:flex; align-items:center; gap:10px;
     }
-    .drop-zone:hover, .drop-zone.drag-over { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,.05); }
-    .drop-zone.has-file { border-color:var(--pass); color:var(--pass); }
-    .drop-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .attach-btn {
+      display:flex; align-items:center; gap:6px;
+      background:transparent; border:1px solid var(--border);
+      border-radius:20px; padding:5px 12px;
+      cursor:pointer; font-size:12px; color:var(--muted);
+      font-family:var(--sans); transition:all .15s;
+    }
+    .attach-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .attach-btn.has-file { border-color:var(--pass); color:var(--pass); }
     .prompt-toolbar { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-top:1px solid var(--border); }
     .prompt-hint { font-size:11px; color:var(--muted); font-family:var(--mono); }
     .send-btn { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; font-weight:500; cursor:pointer; }
@@ -126,10 +130,15 @@
         aria-label="Ask AI — paste content here"
         placeholder="Ask AI… paste 2 KB of text here first"
         rows="4"></textarea>
-      <!-- Drop zone with hidden file input underneath -->
-      <div class="drop-zone" id="drop-zone">
-        <input type="file" id="file-input" onchange="handleFileSelect(this.files[0])"/>
-        <span id="drop-label">📎 Drop file here or click to browse (~5 MB)</span>
+      <!-- duck.ai pattern: button triggers hidden input, no absolute positioning -->
+      <div class="attach-row" id="drop-zone">
+        <button type="button" class="attach-btn" id="attach-btn"
+          aria-label="Add file or PDF"
+          onclick="document.getElementById('file-input').click()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+          <span id="drop-label">Attach file (~5 MB)</span>
+        </button>
+        <input type="file" id="file-input" hidden onchange="handleFileSelect(this.files[0])"/>
       </div>
       <div class="prompt-toolbar">
         <span class="prompt-hint" id="char-hint">0 B pasted</span>
@@ -144,9 +153,21 @@
   <span>Expected: shadow_ai_bytes≈5,250,048 · shadow_ai_type=["Paste","File_Drop"]</span>
 </footer>
 <script>
+
+  // Wake-up: synthetic input + focus event so extension enters tracking mode
+  // before user drops a file. Empty value = 0 bytes added to buffer.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const el = document.getElementById('ai-prompt');
+      if (el) {
+        el.dispatchEvent(new Event('focus', { bubbles: true }));
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+      }
+    }, 800);
+  });
+
   const promptEl = document.getElementById('ai-prompt');
   const logEl = document.getElementById('status-log');
-  const dropZone = document.getElementById('drop-zone');
   let pasteBytes = 0, fileBytes = 0;
   const types = new Set();
 
@@ -175,21 +196,12 @@
     if (!file) return;
     fileBytes = file.size;
     types.add('File_Drop');
-    dropZone.classList.add('has-file');
+    document.getElementById('attach-btn').classList.add('has-file');
     document.getElementById('drop-label').textContent = '✓ '+file.name+' ('+formatBytes(fileBytes)+')';
     appendLog('file selected — '+file.name+' ('+formatBytes(fileBytes)+')', 'log-pass');
     appendLog('combined total: '+formatBytes(pasteBytes+fileBytes), 'log-pass');
     updateAccumulator();
   }
-
-  // Drag-and-drop events
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    const file = e.dataTransfer?.files[0];
-    if (file) handleFileSelect(file);
-  });
 
   function submitPrompt() {
     appendLog('submit — check session-end log for combined bytes', 'log-info');
