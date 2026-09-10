@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadow AI Test — INT-006 URL B | Destination</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --fail:#ef4444; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; padding:40px; }
+    .badge { font-family:var(--mono); font-size:11px; background:var(--surface); border:1px solid var(--border); padding:3px 9px; border-radius:4px; color:var(--muted); }
+    h1 { font-size:18px; font-weight:600; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:24px 28px; max-width:560px; width:100%; }
+    .card h2 { font-size:13px; font-weight:600; margin-bottom:12px; }
+    .check-list { display:flex; flex-direction:column; gap:10px; }
+    .check-item { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.5; }
+    .check-icon { font-size:15px; flex-shrink:0; margin-top:1px; }
+    footer { font-family:var(--mono); font-size:10px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="badge">SAI-INT-006 · URL B · Destination (no AI elements)</div>
+  <h1>Navigation Complete</h1>
+  <div class="card">
+    <h2>Verify in Web Logs</h2>
+    <div class="check-list">
+      <div class="check-item"><span class="check-icon">✅</span><span>URL A (int_006_navigate_flush_a.html) has a <strong>Tier 3 log</strong> — shadow_ai_type=["Text Input"], shadow_ai_bytes≈30</span></div>
+      <div class="check-item"><span class="check-icon">✅</span><span>Tier 3 log is <strong>associated with URL A</strong>, not this page (URL B)</span></div>
+      <div class="check-item"><span class="check-icon">✅</span><span>This page (URL B) has a <strong>Tier 1 proxy log only</strong> — no AI signals</span></div>
+    </div>
+  </div>
+  <footer>SAI-INT-006 · URL B · int_006_navigate_flush_b.html</footer>
+</body>
+</html>
