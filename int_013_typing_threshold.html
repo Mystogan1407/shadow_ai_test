@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shadow AI Test — INT-013 | Typing Reaches Byte Threshold</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0f1117; --surface:#181c27; --border:#2a2f42;
+      --accent:#4f8ef7; --accent2:#7c5cfc; --text:#e2e6f0;
+      --muted:#6b7290; --pass:#22c55e; --warn:#f59e0b; --fail:#ef4444;
+      --mono:"JetBrains Mono","Fira Code","Courier New",monospace;
+      --sans:"Inter",system-ui,sans-serif;
+    }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }
+    header { border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+    .badge { font-family:var(--mono); font-size:11px; background:linear-gradient(135deg,var(--accent),var(--accent2)); padding:3px 9px; border-radius:4px; color:#fff; letter-spacing:.04em; }
+    header h1 { font-size:14px; font-weight:600; }
+    .tc-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }
+    main { display:grid; grid-template-columns:340px 1fr; }
+    aside { border-right:1px solid var(--border); padding:24px 20px; display:flex; flex-direction:column; gap:20px; position:sticky; top:0; height:calc(100vh - 53px); overflow-y:auto; }
+    aside h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px; }
+    .spec-row { display:flex; justify-content:space-between; align-items:baseline; padding:5px 0; border-bottom:1px solid var(--border); gap:12px; }
+    .spec-row:last-child { border-bottom:none; }
+    .spec-key { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .spec-val { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
+    .spec-val.highlight { color:var(--pass); } .spec-val.accent { color:var(--accent); }
+    .callout { background:#0d1f0d; border:1px solid #1a4d1a; border-radius:8px; padding:12px 14px; font-size:12px; color:var(--pass); line-height:1.5; }
+    .callout strong { display:block; margin-bottom:4px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+    /* live byte gauge */
+    .gauge-wrap { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; }
+    .gauge-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .gauge-bytes { font-family:var(--mono); font-size:22px; font-weight:700; }
+    .gauge-bytes.crossing { color:var(--warn); }
+    .gauge-bytes.over { color:var(--pass); }
+    .gauge-label { font-family:var(--mono); font-size:11px; color:var(--muted); }
+    .bar-wrap { background:var(--border); border-radius:4px; height:8px; overflow:hidden; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); width:0%; transition:width .08s; border-radius:4px; }
+    .bar-fill.over { background:linear-gradient(90deg,#22c55e,#16a34a); }
+    /* tier 3 fired indicator */
+    .tier3-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center; }
+    .tier3-status { font-family:var(--mono); font-size:12px; color:var(--muted); }
+    .tier3-status.fired { color:var(--pass); font-weight:600; }
+    .tier3-count { font-family:var(--mono); font-size:28px; font-weight:700; color:var(--muted); }
+    .tier3-count.fired { color:var(--pass); }
+    .tier3-sublabel { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:2px; }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; color:var(--muted); max-height:160px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); }
+    .log-pass{color:var(--pass);} .log-warn{color:var(--warn);} .log-info{color:var(--accent);}
+    .btn { width:100%; padding:9px 14px; border-radius:6px; border:1px solid var(--border); cursor:pointer; font-family:var(--sans); font-size:12px; font-weight:500; transition:all .15s; text-align:left; display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); }
+    .btn:hover { border-color:var(--accent); color:var(--accent); }
+    .btn-danger { color:var(--fail); border-color:#3a1c1c; }
+    .btn-danger:hover { border-color:var(--fail); color:var(--fail); }
+    .chat-area { padding:32px 40px; display:flex; flex-direction:column; gap:24px; max-width:720px; }
+    .app-header { display:flex; align-items:center; gap:10px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .sparkle-icon { width:32px; height:32px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+    .app-name { font-size:15px; font-weight:600; }
+    .app-sub { font-size:12px; color:var(--muted); }
+    .thread { display:flex; flex-direction:column; gap:14px; }
+    .msg { border-radius:10px; padding:12px 16px; max-width:85%; font-size:13px; line-height:1.55; }
+    .msg-ai { background:var(--surface); border:1px solid var(--border); align-self:flex-start; }
+    .prompt-wrap { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; transition:border-color .15s, box-shadow .15s; }
+    .prompt-wrap:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,142,247,.12); }
+    .prompt-wrap.threshold-hit { border-color:var(--pass); box-shadow:0 0 0 3px rgba(34,197,94,.18); }
+    #ai-prompt { width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.6; padding:14px 16px 8px; resize:none; min-height:88px; }
+    #ai-prompt::placeholder { color:var(--muted); }
+    .prompt-toolbar { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-top:1px solid var(--border); }
+    .prompt-hint { font-size:11px; color:var(--muted); font-family:var(--mono); }
+    footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:24px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">SAI-INT-013</div>
+  <h1>Typing Reaches Byte Threshold — Exactly One Tier 3</h1>
+  <div class="tc-meta">Shadow AI Phase 1 · RC 4.10</div>
+</header>
+<main>
+  <aside>
+    <div>
+      <h2>Test Spec</h2>
+      <div class="spec-block" style="margin-top:10px">
+        <div class="spec-row"><span class="spec-key">ID</span><span class="spec-val accent">SAI-INT-013</span></div>
+        <div class="spec-row"><span class="spec-key">Input method</span><span class="spec-val">Typing only (no paste)</span></div>
+        <div class="spec-row"><span class="spec-key">Target</span><span class="spec-val">35 chars → cross 32 B</span></div>
+        <div class="spec-row"><span class="spec-key">shadow_ai_tier</span><span class="spec-val highlight">3</span></div>
+        <div class="spec-row"><span class="spec-key">shadow_ai_type</span><span class="spec-val">["Text Input"]</span></div>
+        <div class="spec-row"><span class="spec-key">shadow_ai_bytes</span><span class="spec-val">≥ 35</span></div>
+        <div class="spec-row"><span class="spec-key">Tier 3 count</span><span class="spec-val highlight">exactly 1</span></div>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>✓ Key assertion</strong>
+      Exactly ONE Tier 3 fires at threshold breach. Continuing to type after that must NOT produce duplicate Tier 3 entries.
+    </div>
+    <div>
+      <h2>Live Buffer</h2>
+      <div class="gauge-wrap" style="margin-top:10px">
+        <div class="gauge-row">
+          <span class="gauge-bytes" id="gbytes">0</span>
+          <span class="gauge-label">/ 32 B threshold</span>
+        </div>
+        <div class="bar-wrap"><div class="bar-fill" id="gbar"></div></div>
+      </div>
+    </div>
+    <div>
+      <h2>Tier 3 Fires (local signal)</h2>
+      <div class="tier3-box" style="margin-top:10px">
+        <div class="tier3-count" id="t3count">0</div>
+        <div class="tier3-sublabel">page-side threshold crossings</div>
+        <div class="tier3-status" id="t3status" style="margin-top:6px">waiting for input…</div>
+      </div>
+    </div>
+    <div>
+      <h2>Actions</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <button class="btn btn-danger" onclick="clearField()">✕ Clear &amp; reset counter</button>
+      </div>
+    </div>
+    <div>
+      <h2>Page Event Log</h2>
+      <div id="status-log" style="margin-top:10px"><span class="log-info">» page loaded — type chars one at a time</span></div>
+    </div>
+  </aside>
+  <div class="chat-area">
+    <div class="app-header">
+      <div class="sparkle-icon" aria-label="AI assistant sparkle icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="white"/><path d="M19 16L19.75 19L23 19.75L19.75 20.5L19 23L18.25 20.5L15 19.75L18.25 19L19 16Z" fill="white" opacity=".7"/></svg>
+      </div>
+      <div>
+        <div class="app-name">GenAI Assistant</div>
+        <div class="app-sub">Shadow AI Test · int_013_typing_threshold</div>
+      </div>
+    </div>
+    <div class="thread" id="thread">
+      <div class="msg msg-ai">Type characters one at a time (do NOT paste). At 33+ bytes the extension should fire exactly one Tier 3 log. Keep typing after that — no duplicate Tier 3 should appear.</div>
+    </div>
+    <div class="prompt-wrap" id="prompt-wrap">
+      <textarea id="ai-prompt" role="textbox"
+        aria-label="Ask AI — type your prompt here"
+        placeholder="Ask AI… type here character by character"
+        rows="4"></textarea>
+      <div class="prompt-toolbar">
+        <span class="prompt-hint" id="char-hint">0 B typed</span>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>SAI-INT-013 · Happy Path</span>
+  <span>Threshold: 32 B · shadow_ai_type=["Text Input"]</span>
+  <span>Exactly 1 Tier 3 at breach — subsequent keystrokes accumulate into session-end log only</span>
+</footer>
+<script>
+  const THRESHOLD = 32;
+  const promptEl = document.getElementById('ai-prompt');
+  const gbar = document.getElementById('gbar');
+  const gbytes = document.getElementById('gbytes');
+  const hint = document.getElementById('char-hint');
+  const logEl = document.getElementById('status-log');
+  const t3count = document.getElementById('t3count');
+  const t3status = document.getElementById('t3status');
+  const wrap = document.getElementById('prompt-wrap');
+  let crossings = 0;
+  let alreadyCrossed = false;
+
+  function appendLog(msg, cls) { const l=document.createElement('div'); if(cls)l.className=cls; l.textContent='» '+msg; logEl.appendChild(l); logEl.scrollTop=logEl.scrollHeight; }
+  function byteLen(s) { return new TextEncoder().encode(s).length; }
+
+  promptEl.addEventListener('paste', () => appendLog('⚠ PASTE detected! This case requires typing only', 'log-warn'));
+
+  promptEl.addEventListener('input', () => {
+    const bytes = byteLen(promptEl.value);
+    gbytes.textContent = bytes;
+    gbytes.className = 'gauge-bytes' + (bytes >= THRESHOLD ? ' over' : bytes >= THRESHOLD - 4 ? ' crossing' : '');
+    const pct = Math.min((bytes/THRESHOLD)*100, 100);
+    gbar.style.width = pct+'%';
+    gbar.className = 'bar-fill' + (bytes >= THRESHOLD ? ' over' : '');
+    hint.textContent = bytes+' B typed';
+
+    if (bytes >= THRESHOLD && !alreadyCrossed) {
+      alreadyCrossed = true;
+      crossings++;
+      t3count.textContent = crossings;
+      t3count.className = 'tier3-count fired';
+      t3status.textContent = '⚡ threshold crossed at '+bytes+' B — Tier 3 should fire';
+      t3status.className = 'tier3-status fired';
+      wrap.classList.add('threshold-hit');
+      appendLog('⚡ threshold crossed ('+bytes+' B ≥ '+THRESHOLD+' B) — expect exactly 1 Tier 3', 'log-pass');
+      appendLog('keep typing → no duplicate Tier 3 should appear', 'log-info');
+    } else if (bytes >= THRESHOLD && alreadyCrossed) {
+      appendLog('continued typing ('+bytes+' B) — no new Tier 3 expected', 'log-info');
+    }
+  });
+
+  function clearField() {
+    promptEl.value = '';
+    gbytes.textContent = '0'; gbytes.className = 'gauge-bytes';
+    gbar.style.width = '0%'; gbar.className = 'bar-fill';
+    hint.textContent = '0 B typed';
+    crossings = 0; alreadyCrossed = false;
+    t3count.textContent = '0'; t3count.className = 'tier3-count';
+    t3status.textContent = 'waiting for input…'; t3status.className = 'tier3-status';
+    wrap.classList.remove('threshold-hit');
+    appendLog('field cleared — counter reset', 'log-info');
+  }
+</script>
+</body>
+</html>

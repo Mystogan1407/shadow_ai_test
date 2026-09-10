@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shadow AI Test — INT-015 URL B | Destination Page</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding:40px; }
+    .badge { font-family:var(--mono); font-size:11px; background:var(--surface); border:1px solid var(--border); padding:3px 9px; border-radius:4px; color:var(--muted); }
+    h1 { font-size:18px; font-weight:600; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:24px 28px; max-width:540px; width:100%; }
+    .card h2 { font-size:13px; font-weight:600; margin-bottom:12px; }
+    .check-list { display:flex; flex-direction:column; gap:10px; }
+    .check-item { display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.5; }
+    .check-icon { font-size:15px; flex-shrink:0; margin-top:1px; }
+    .note { font-size:12px; color:var(--muted); line-height:1.6; }
+    footer { font-family:var(--mono); font-size:10px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="badge">SAI-INT-015 · URL B · Destination</div>
+  <h1>Navigation Complete</h1>
+  <div class="card">
+    <h2>Now verify in Web Logs</h2>
+    <div class="check-list">
+      <div class="check-item"><span class="check-icon">✅</span><span>URL A (int_015_zero_bytes_url_a.html) has a <strong>Tier 2 log</strong> — AI Presence Detected</span></div>
+      <div class="check-item"><span class="check-icon">⛔</span><span>URL A has <strong>NO Tier 3 log</strong> — buffer was 0 bytes, session-end flush must not produce a Tier 3 entry</span></div>
+      <div class="check-item"><span class="check-icon">✅</span><span>This page (URL B) has a standard <strong>Tier 1 proxy log</strong> only — no AI signals present</span></div>
+    </div>
+  </div>
+  <p class="note">This page is a plain destination with no AI elements. Its only role is to trigger the navigation event that causes the extension to flush URL A's buffer.</p>
+  <footer>SAI-INT-015 · URL B · int_015_zero_bytes_url_b.html</footer>
+</body>
+</html>
