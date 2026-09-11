@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadow AI Test — DET-007 | Sparkle Icon Detection</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --accent2:#7c5cfc; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --warn:#f59e0b; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }
+    header { border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+    .badge { font-family:var(--mono); font-size:11px; background:linear-gradient(135deg,#4f8ef7,#7c5cfc); padding:3px 9px; border-radius:4px; color:#fff; }
+    header h1 { font-size:14px; font-weight:600; }
+    .tc-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }
+    main { display:grid; grid-template-columns:300px 1fr; }
+    aside { border-right:1px solid var(--border); padding:20px; display:flex; flex-direction:column; gap:16px; position:sticky; top:0; height:calc(100vh - 53px); overflow-y:auto; }
+    aside h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; }
+    .spec-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); gap:10px; }
+    .spec-row:last-child { border-bottom:none; }
+    .sk { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .sv { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
+    .sv.g { color:var(--pass); } .sv.b { color:var(--accent); }
+    .callout { border-radius:8px; padding:12px; font-size:12px; line-height:1.6; }
+    .callout-pass { background:#0d1f0d; border:1px solid #1a4d1a; color:var(--pass); }
+    .callout-warn { background:#1a1208; border:1px solid #5a3a00; color:var(--warn); }
+    .callout strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:160px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
+    .lp{color:var(--pass);} .lw{color:var(--warn);} .li{color:var(--accent);}
+
+    /* right panel — generic SaaS app chrome */
+    .app-panel { display:flex; flex-direction:column; height:calc(100vh - 53px); background:#fff; }
+    .fake-bar { background:#f2f2f2; border-bottom:1px solid #d8d8d8; padding:7px 16px; display:flex; align-items:center; gap:10px; }
+    .dots { width:12px; height:12px; border-radius:50%; background:#fc6058; box-shadow:17px 0 0 #fec02f,34px 0 0 #2bc840; flex-shrink:0; }
+    .url-bar { flex:1; background:#fff; border:1px solid #d0d0d0; border-radius:5px; padding:3px 10px; font-family:var(--mono); font-size:11px; color:#666; margin-left:44px; }
+    .iso-badge { font-size:10px; background:#1a73e8; color:#fff; border-radius:3px; padding:2px 6px; font-weight:600; }
+
+    /* app layout: sidebar nav + content */
+    .app-body { flex:1; display:grid; grid-template-columns:200px 1fr; overflow:hidden; }
+    .app-nav { background:#f7f7f8; border-right:1px solid #e5e5e7; padding:20px 12px; display:flex; flex-direction:column; gap:4px; }
+    .nav-item { padding:8px 12px; border-radius:6px; font-size:13px; color:#555; cursor:default; }
+    .nav-item.active { background:#e8eeff; color:#1a73e8; font-weight:500; }
+    .app-content { padding:32px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
+
+    /* the ticket/document being viewed */
+    .ticket { background:#fff; border:1px solid #e5e5e7; border-radius:10px; padding:24px; }
+    .ticket-title { font-size:17px; font-weight:600; color:#1a1a1a; margin-bottom:8px; }
+    .ticket-meta { font-size:12px; color:#888; margin-bottom:16px; }
+    .ticket-body { font-size:14px; color:#333; line-height:1.7; }
+
+    /* THE SIGNAL: sparkle button in app toolbar — no AI element ID, no aria-label with AI keyword, no placeholder */
+    .app-toolbar { display:flex; align-items:center; gap:8px; padding:12px 0; border-bottom:1px solid #f0f0f0; margin-bottom:16px; }
+    .toolbar-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid #e5e5e7; border-radius:6px; padding:5px 10px; cursor:pointer; font-size:12px; color:#555; font-family:var(--sans); transition:background .12s; }
+    .toolbar-btn:hover { background:#f7f7f8; }
+    /* sparkle button — THE ONLY SIGNAL C element on this page */
+    .sparkle-btn {
+      display:flex; align-items:center; gap:5px;
+      background:linear-gradient(135deg,#f0f4ff,#f5f0ff);
+      border:1px solid #d0d8ff;
+      border-radius:6px; padding:5px 10px;
+      cursor:pointer; font-size:12px; color:#4f46e5;
+      font-family:var(--sans); transition:all .12s;
+    }
+    .sparkle-btn:hover { background:linear-gradient(135deg,#e8eeff,#ede8ff); }
+
+    /* comment box — plain textarea, NO AI attributes whatsoever */
+    .comment-box { margin-top:16px; }
+    .comment-label { font-size:12px; color:#888; margin-bottom:6px; }
+    .comment-input { width:100%; border:1px solid #e5e5e7; border-radius:8px; padding:10px 14px; font-size:13px; font-family:var(--sans); color:#1a1a1a; resize:none; outline:none; min-height:80px; }
+    .comment-input:focus { border-color:#b0b0b8; }
+    .comment-input::placeholder { color:#bbb; }
+
+    footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:20px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">SAI-DET-007</div>
+  <h1>Heuristic — Sparkle Icon Detection (No Known Element ID)</h1>
+  <div class="tc-meta">Shadow AI Phase 1 · RC 4.10</div>
+</header>
+<main>
+  <aside>
+    <div>
+      <h2>Test Spec</h2>
+      <div class="spec-block" style="margin-top:8px">
+        <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-DET-007</span></div>
+        <div class="spec-row"><span class="sk">Signal</span><span class="sv">Signal C only</span></div>
+        <div class="spec-row"><span class="sk">Heuristic</span><span class="sv">Sparkle SVG icon</span></div>
+        <div class="spec-row"><span class="sk">Known element ID</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">AI aria-label</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">AI placeholder</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">Expected tier</span><span class="sv g">2</span></div>
+        <div class="spec-row"><span class="sk">Event Type</span><span class="sv">AI Presence Detected</span></div>
+        <div class="spec-row"><span class="sk">shadow_ai_details</span><span class="sv">sparkle_icon</span></div>
+        <div class="spec-row"><span class="sk">Detection Signal</span><span class="sv">Static DOM Analysis</span></div>
+      </div>
+    </div>
+    <div class="callout callout-pass">
+      <strong>✓ Signal C — Sparkle only</strong>
+      The only AI signal on this page is the sparkle SVG button in the toolbar. No known element ID, no "Ask AI" aria-label, no AI placeholder text. Extension must detect via SVG/CSS class pattern alone.
+    </div>
+    <div class="callout callout-warn">
+      <strong>⚠ Do not interact</strong>
+      This is a Tier 2 detection test only. Do not type into the comment box — that would trigger Signal B and contaminate the result.
+    </div>
+    <div>
+      <h2>Page Event Log</h2>
+      <div id="status-log" style="margin-top:8px"><span class="li">» page loaded — sparkle icon present in DOM</span></div>
+    </div>
+  </aside>
+
+  <div class="app-panel">
+    <div class="fake-bar">
+      <span class="dots"></span>
+      <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/det_007_sparkle_icon.html</div>
+      <span class="iso-badge">🔒 Isolated</span>
+    </div>
+    <div class="app-body">
+      <nav class="app-nav">
+        <div class="nav-item">Dashboard</div>
+        <div class="nav-item active">Issues</div>
+        <div class="nav-item">Projects</div>
+        <div class="nav-item">Reports</div>
+        <div class="nav-item">Settings</div>
+      </nav>
+      <div class="app-content">
+        <div class="ticket">
+          <div class="app-toolbar">
+            <button class="toolbar-btn">Edit</button>
+            <button class="toolbar-btn">Assign</button>
+            <button class="toolbar-btn">Label</button>
+            <div style="flex:1"></div>
+            <!--
+              SIGNAL C TARGET: sparkle SVG button
+              - No id attribute
+              - No aria-label containing "AI" keyword
+              - CSS class name is generic (sparkle-btn), not a known AI element ID
+              - SVG path matches common sparkle/magic-wand pattern
+            -->
+            <button class="sparkle-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="currentColor"/>
+                <path d="M19 16L19.75 19L23 19.75L19.75 20.5L19 23L18.25 20.5L15 19.75L18.25 19L19 16Z" fill="currentColor" opacity=".6"/>
+                <path d="M5 3L5.5 5L8 5.5L5.5 6L5 8L4.5 6L2 5.5L4.5 5L5 3Z" fill="currentColor" opacity=".4"/>
+              </svg>
+              Summarise
+            </button>
+          </div>
+          <div class="ticket-title">PROJ-1042 — Integrate payment gateway with checkout flow</div>
+          <div class="ticket-meta">Opened by Sarah Chen · 3 days ago · Priority: High · Status: In Progress</div>
+          <div class="ticket-body">
+            <p>We need to integrate Stripe into the checkout flow before the Q3 release. The current implementation uses a legacy payment processor that will be deprecated in August.</p>
+            <br>
+            <p><strong>Acceptance criteria:</strong></p>
+            <ul style="margin-left:20px;margin-top:6px">
+              <li>Users can pay with credit card, Apple Pay, and Google Pay</li>
+              <li>PCI compliance verified by security team</li>
+              <li>Checkout flow does not increase by more than 200ms</li>
+              <li>Existing subscription billing continues to work</li>
+            </ul>
+          </div>
+          <div class="comment-box">
+            <div class="comment-label">Add a comment</div>
+            <!--
+              Plain textarea — NO AI attributes:
+              - placeholder is generic, not "Ask AI..."
+              - no aria-label with AI keyword
+              - no role="textbox" with AI context
+            -->
+            <textarea class="comment-input" placeholder="Leave a comment…" rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>SAI-DET-007 · Tier 2 · Sparkle icon heuristic</span>
+  <span>Expected: shadow_ai_details="sparkle_icon" · Detection Signal="Static DOM Analysis"</span>
+  <span>No known element ID · No AI aria-label · No AI placeholder</span>
+</footer>
+<script>
+  const logEl = document.getElementById('status-log');
+  function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
+
+  // Confirm to tester that no disqualifying signals are present
+  window.addEventListener('load', () => {
+    const hasKnownId = !!document.querySelector('#atlassian-intelligence, #agentforce-chat-panel, [id*="ai-panel"], [id*="copilot"]');
+    const hasAiAriaLabel = !!document.querySelector('[aria-label*="Ask AI"], [aria-label*="Generate"], [aria-label*="Copilot"]');
+    const hasAiPlaceholder = !!document.querySelector('[placeholder*="Ask AI"], [placeholder*="Generate with"]');
+    const hasSparkle = !!document.querySelector('.sparkle-btn svg');
+
+    appendLog('known element ID present: ' + hasKnownId, hasKnownId ? 'lw' : 'lp');
+    appendLog('AI aria-label present: ' + hasAiAriaLabel, hasAiAriaLabel ? 'lw' : 'lp');
+    appendLog('AI placeholder present: ' + hasAiPlaceholder, hasAiPlaceholder ? 'lw' : 'lp');
+    appendLog('sparkle SVG present: ' + hasSparkle, hasSparkle ? 'lp' : 'lw');
+    appendLog('ready — check Web Logs for Tier 2 (shadow_ai_details=sparkle_icon)', 'li');
+  });
+</script>
+</body>
+</html>

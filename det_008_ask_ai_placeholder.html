@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadow AI Test — DET-008 | Ask AI Placeholder Detection</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --accent2:#7c5cfc; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --warn:#f59e0b; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }
+    header { border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+    .badge { font-family:var(--mono); font-size:11px; background:linear-gradient(135deg,#4f8ef7,#7c5cfc); padding:3px 9px; border-radius:4px; color:#fff; }
+    header h1 { font-size:14px; font-weight:600; }
+    .tc-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }
+    main { display:grid; grid-template-columns:300px 1fr; }
+    aside { border-right:1px solid var(--border); padding:20px; display:flex; flex-direction:column; gap:16px; position:sticky; top:0; height:calc(100vh - 53px); overflow-y:auto; }
+    aside h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; }
+    .spec-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); gap:10px; }
+    .spec-row:last-child { border-bottom:none; }
+    .sk { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .sv { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
+    .sv.g { color:var(--pass); } .sv.b { color:var(--accent); }
+    .callout { border-radius:8px; padding:12px; font-size:12px; line-height:1.6; }
+    .callout-pass { background:#0d1f0d; border:1px solid #1a4d1a; color:var(--pass); }
+    .callout-warn { background:#1a1208; border:1px solid #5a3a00; color:var(--warn); }
+    .callout strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:160px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
+    .lp{color:var(--pass);} .lw{color:var(--warn);} .li{color:var(--accent);}
+
+    /* right panel */
+    .app-panel { display:flex; flex-direction:column; height:calc(100vh - 53px); background:#f5f5f7; }
+    .fake-bar { background:#f2f2f2; border-bottom:1px solid #d8d8d8; padding:7px 16px; display:flex; align-items:center; gap:10px; }
+    .dots { width:12px; height:12px; border-radius:50%; background:#fc6058; box-shadow:17px 0 0 #fec02f,34px 0 0 #2bc840; flex-shrink:0; }
+    .url-bar { flex:1; background:#fff; border:1px solid #d0d0d0; border-radius:5px; padding:3px 10px; font-family:var(--mono); font-size:11px; color:#666; margin-left:44px; }
+    .iso-badge { font-size:10px; background:#1a73e8; color:#fff; border-radius:3px; padding:2px 6px; font-weight:600; }
+    .app-content { flex:1; overflow-y:auto; padding:32px; display:flex; gap:24px; align-items:flex-start; }
+
+    /* main document area */
+    .doc-area { flex:1; background:#fff; border-radius:10px; border:1px solid #e5e5e7; padding:32px; min-height:400px; }
+    .doc-title { font-size:22px; font-weight:700; color:#1a1a1a; margin-bottom:4px; outline:none; }
+    .doc-title:empty::before { content:"Untitled"; color:#bbb; }
+    .doc-divider { border:none; border-top:1px solid #f0f0f0; margin:16px 0; }
+    .doc-body { font-size:14px; color:#333; line-height:1.8; outline:none; min-height:120px; }
+    .doc-body:empty::before { content:"Start writing or press '/' for commands…"; color:#bbb; }
+
+    /* AI sidebar panel — the key element for this test */
+    .ai-sidebar {
+      width:280px; flex-shrink:0;
+      background:#fff; border-radius:10px;
+      border:1px solid #e5e5e7;
+      display:flex; flex-direction:column;
+      overflow:hidden;
+    }
+    .ai-sidebar-header { padding:14px 16px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:8px; }
+    .ai-sidebar-header span { font-size:13px; font-weight:600; color:#1a1a1a; }
+    .ai-sidebar-header small { font-size:11px; color:#888; margin-left:auto; }
+    .ai-chips { padding:12px; display:flex; flex-direction:column; gap:6px; }
+    .ai-chip { background:#f7f7f8; border:1px solid #e5e5e7; border-radius:6px; padding:8px 10px; font-size:12px; color:#555; cursor:pointer; transition:background .12s; }
+    .ai-chip:hover { background:#eef2ff; color:#4f46e5; border-color:#c7d2fe; }
+
+    /*
+      SIGNAL C TARGET: textarea with placeholder="Ask AI..."
+      - No element ID
+      - No AI-specific aria-label
+      - No sparkle icon
+      - Placeholder text is the ONLY signal
+    */
+    .ai-input-wrap { padding:12px; border-top:1px solid #f0f0f0; margin-top:auto; }
+    .ai-input {
+      width:100%; border:1px solid #e5e5e7; border-radius:8px;
+      padding:10px 12px; font-size:13px; font-family:var(--sans);
+      color:#1a1a1a; resize:none; outline:none; min-height:72px;
+      background:#fafafa;
+    }
+    .ai-input:focus { border-color:#b0b0b8; background:#fff; }
+    /* placeholder is the ONLY AI signal */
+    .ai-input::placeholder { color:#aaa; }
+    .ai-send { margin-top:6px; width:100%; background:#1a1a1a; color:#fff; border:none; border-radius:6px; padding:7px; font-size:12px; font-weight:500; cursor:pointer; font-family:var(--sans); }
+    .ai-send:hover { opacity:.85; }
+
+    footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:20px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">SAI-DET-008</div>
+  <h1>Heuristic — "Ask AI..." Placeholder Detection (No Known Element ID)</h1>
+  <div class="tc-meta">Shadow AI Phase 1 · RC 4.10</div>
+</header>
+<main>
+  <aside>
+    <div>
+      <h2>Test Spec</h2>
+      <div class="spec-block" style="margin-top:8px">
+        <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-DET-008</span></div>
+        <div class="spec-row"><span class="sk">Signal</span><span class="sv">Signal C only</span></div>
+        <div class="spec-row"><span class="sk">Heuristic</span><span class="sv">placeholder="Ask AI..."</span></div>
+        <div class="spec-row"><span class="sk">Known element ID</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">Sparkle icon</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">AI aria-label</span><span class="sv" style="color:var(--warn)">NONE</span></div>
+        <div class="spec-row"><span class="sk">Expected tier</span><span class="sv g">2</span></div>
+        <div class="spec-row"><span class="sk">Event Type</span><span class="sv">AI Presence Detected</span></div>
+        <div class="spec-row"><span class="sk">shadow_ai_details</span><span class="sv">ai_placeholder</span></div>
+        <div class="spec-row"><span class="sk">Detection Signal</span><span class="sv">Static DOM Analysis</span></div>
+      </div>
+    </div>
+    <div class="callout callout-pass">
+      <strong>✓ Signal C — Placeholder only</strong>
+      The only AI signal is <code style="font-family:var(--mono);font-size:11px">placeholder="Ask AI..."</code> on the sidebar textarea. No sparkle icon, no known element ID, no AI aria-label anywhere on the page.
+    </div>
+    <div class="callout callout-warn">
+      <strong>⚠ Do not type into AI field</strong>
+      Tier 2 detection only. If you type into the "Ask AI..." field you trigger Signal B and contaminate the result.
+    </div>
+    <div>
+      <h2>Page Event Log</h2>
+      <div id="status-log" style="margin-top:8px"><span class="li">» page loaded — AI placeholder present in DOM</span></div>
+    </div>
+  </aside>
+
+  <div class="app-panel">
+    <div class="fake-bar">
+      <span class="dots"></span>
+      <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/det_008_ask_ai_placeholder.html</div>
+      <span class="iso-badge">🔒 Isolated</span>
+    </div>
+    <div class="app-content">
+      <!-- main doc -->
+      <div class="doc-area">
+        <div class="doc-title" contenteditable="true">Q3 Planning Document</div>
+        <hr class="doc-divider"/>
+        <div class="doc-body" contenteditable="true">This document outlines the roadmap and priorities for Q3. Use the panel on the right to ask questions about this content.</div>
+      </div>
+
+      <!-- AI sidebar — only signal is the textarea placeholder -->
+      <div class="ai-sidebar">
+        <div class="ai-sidebar-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#888"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke="#fff" stroke-width="2" fill="none"/></svg>
+          <span>Assistant</span>
+          <small>Beta</small>
+        </div>
+        <div class="ai-chips">
+          <div class="ai-chip">Summarise this document</div>
+          <div class="ai-chip">List key action items</div>
+          <div class="ai-chip">Suggest next steps</div>
+        </div>
+        <div class="ai-input-wrap">
+          <!--
+            SIGNAL C TARGET — placeholder is the ONLY AI indicator:
+            - No id attribute
+            - No aria-label with AI keyword
+            - No sparkle SVG
+            - Generic class name "ai-input" (not a known element ID signature)
+          -->
+          <textarea
+            class="ai-input"
+            placeholder="Ask AI..."
+            rows="3"
+          ></textarea>
+          <button class="ai-send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>SAI-DET-008 · Tier 2 · Placeholder heuristic</span>
+  <span>Expected: shadow_ai_details="ai_placeholder" · Detection Signal="Static DOM Analysis"</span>
+  <span>No known element ID · No sparkle icon · No AI aria-label</span>
+</footer>
+<script>
+  const logEl = document.getElementById('status-log');
+  function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
+
+  window.addEventListener('load', () => {
+    const hasKnownId = !!document.querySelector('#atlassian-intelligence, #agentforce-chat-panel, [id*="ai-panel"], [id*="copilot"]');
+    const hasSparkle = !!document.querySelector('[aria-label*="sparkle"], [class*="sparkle"]');
+    const hasAiAriaLabel = !!document.querySelector('[aria-label*="Ask AI"], [aria-label*="Generate"], [aria-label*="Copilot"]');
+    const hasAiPlaceholder = !!document.querySelector('[placeholder="Ask AI..."], [placeholder*="Ask AI"]');
+
+    appendLog('known element ID present: ' + hasKnownId, hasKnownId ? 'lw' : 'lp');
+    appendLog('sparkle icon present: ' + hasSparkle, hasSparkle ? 'lw' : 'lp');
+    appendLog('AI aria-label present: ' + hasAiAriaLabel, hasAiAriaLabel ? 'lw' : 'lp');
+    appendLog('AI placeholder present: ' + hasAiPlaceholder, hasAiPlaceholder ? 'lp' : 'lw');
+    appendLog('ready — check Web Logs for Tier 2 (shadow_ai_details=ai_placeholder)', 'li');
+  });
+</script>
+</body>
+</html>
