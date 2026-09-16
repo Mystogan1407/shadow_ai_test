@@ -446,7 +446,20 @@
           <div class="sidekick-input-footer">
             <div class="left-actions">
               <button class="skills-btn" title="Connect tools">⚙ Use skills</button>
-              <button title="Add files or photos" aria-label="Add files or photos">📎</button>
+              <label for="sidekick-file-input" style="display:inline-flex; cursor:pointer;" title="Add files or photos">
+                <button type="button" data-testid="icon-button" data-vibe="Button"
+                  aria-disabled="false" aria-busy="false" aria-label="Add files or photos"
+                  style="justify-content:center; align-items:center; padding:0; width:24px; height:24px; background:none; border:none; color:#676879; cursor:pointer; pointer-events:none;"
+                  tabindex="-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M12.805 2a3.858 3.858 0 0 1 1.471.278c.467.188.892.466 1.248.817.357.35.64.767.83 1.226a3.683 3.683 0 0 1-.026 2.889c-.197.451-.483.86-.842 1.202l.001.001-6.057 5.958-.01.01a2.31 2.31 0 0 1-1.61.632 2.309 2.309 0 0 1-1.597-.659 2.232 2.232 0 0 1-.67-1.57 2.23 2.23 0 0 1 .642-1.583l4.397-4.325a.786.786 0 0 1 1.098 0 .754.754 0 0 1 0 1.078l-4.383 4.31a.717.717 0 0 0 .013 1.01.745.745 0 0 0 1.032.01l6.048-5.95.008-.01a2.183 2.183 0 0 0 .52-2.425 2.212 2.212 0 0 0-1.23-1.209 2.286 2.286 0 0 0-1.738.015 2.251 2.251 0 0 0-.73.495l-.008.01-6.059 5.955a3.667 3.667 0 0 0-1.101 2.614c0 .98.396 1.92 1.101 2.613a3.793 3.793 0 0 0 2.659 1.083c.997 0 1.953-.39 2.658-1.083l5.706-5.61a.786.786 0 0 1 1.097 0 .754.754 0 0 1 0 1.08l-5.706 5.609A5.36 5.36 0 0 1 7.812 18c-1.409 0-2.76-.55-3.756-1.53A5.177 5.177 0 0 1 2.5 12.78a5.18 5.18 0 0 1 1.556-3.694l6.048-5.945c.351-.357.77-.643 1.234-.838A3.857 3.857 0 0 1 12.805 2Z"/>
+                  </svg>
+                </button>
+              </label>
+              <input id="sidekick-file-input" type="file" multiple
+                accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,text/csv,text/plain,text/markdown,application/json"
+                style="display:none;"
+                aria-label="Upload files to Sidekick">
             </div>
             <div style="display:flex; gap:6px; align-items:center;">
               <button title="Start voice recording" aria-label="Start voice recording">🎙</button>
