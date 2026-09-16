@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAI-DET-004 — Monday.com Sidekick AI (Simulated)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f4f4;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar spec panel ── */
+  .sidebar {
+    width: 300px; min-width: 300px;
+    background: #1a1a2e; color: #e0e0e0;
+    display: flex; flex-direction: column;
+    padding: 16px; gap: 12px;
+    overflow-y: auto; font-size: 12px;
+  }
+  .sidebar h2 { font-size: 13px; color: #f6af2d; border-bottom: 1px solid #333; padding-bottom: 8px; letter-spacing: 0.5px; }
+  .spec-block { background: #12122a; border-radius: 6px; padding: 10px; }
+  .spec-block h3 { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.8px; }
+  .spec-block p, .spec-block li { color: #ccc; line-height: 1.5; }
+  .spec-block ul { padding-left: 14px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+  .badge-tc   { background: #2d4a3e; color: #4caf82; }
+  .badge-tier { background: #1a3a5c; color: #64b5f6; }
+  .badge-type { background: #3a2d1a; color: #ffb74d; }
+  .selector-row { background: #0d0d1a; border-radius: 4px; padding: 6px 8px; margin-top: 4px; font-family: monospace; font-size: 11px; color: #a5d6a7; word-break: break-all; }
+  .event-log { flex: 1; background: #0d0d1a; border-radius: 6px; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #888; min-height: 80px; }
+  .event-log .ev-tier2 { color: #64b5f6; }
+  .event-log .ev-ok    { color: #4caf82; }
+  .event-log .ev-warn  { color: #ffb74d; }
+  .event-log .ts       { color: #555; margin-right: 4px; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 4px 0; color: #aaa; cursor: pointer; }
+  .checklist li::before { content: '○ '; color: #555; }
+  .checklist li.done::before { content: '✓ '; color: #4caf82; }
+  .checklist li.done { color: #4caf82; }
+
+  /* ── Main area ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Fake browser bar */
+  .fake-bar { background: #2a2a2a; display: flex; align-items: center; gap: 10px; padding: 6px 12px; flex-shrink: 0; }
+  .dots { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1px #555, 16px 0 0 0 #555, 32px 0 0 0 #555; background: #ff5f56; flex-shrink: 0; }
+  .url-bar { flex: 1; background: #3a3a3a; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #bbb; font-family: monospace; }
+  .iso-badge { font-size: 10px; background: #1a3a1a; color: #4caf82; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+
+  /* Monday top nav */
+  .mn-topnav {
+    background: #fff; border-bottom: 1px solid #e0e0e0;
+    display: flex; align-items: center; padding: 0 16px;
+    height: 48px; gap: 12px; flex-shrink: 0;
+  }
+  .mn-logo { font-size: 22px; font-weight: 900; color: #f6af2d; letter-spacing: -1px; }
+  .mn-logo span { color: #e44258; }
+  .mn-topnav .spacer { flex: 1; }
+  .mn-topnav .search-box { background: #f5f6f8; border: 1px solid #e0e0e0; border-radius: 20px; padding: 5px 14px; color: #999; font-size: 12px; width: 200px; }
+  .mn-topnav .nav-btn { background: none; border: none; color: #676879; font-size: 12px; cursor: default; padding: 4px 8px; border-radius: 4px; }
+
+  /* Monday content area */
+  .mn-content { flex: 1; display: flex; overflow: hidden; }
+
+  /* Monday left sidebar */
+  .mn-sidebar {
+    width: 220px; min-width: 220px;
+    background: #fff; border-right: 1px solid #e0e0e0;
+    padding: 8px 0; font-size: 13px; color: #333;
+    display: flex; flex-direction: column;
+  }
+  .mn-sidebar .ws-header { padding: 8px 12px; font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #f0f0f0; margin-bottom: 4px; }
+  .mn-nav-item { display: flex; align-items: center; gap: 8px; padding: 6px 12px; color: #555; font-size: 13px; cursor: default; border-radius: 4px; margin: 1px 4px; }
+  .mn-nav-item:hover { background: #f5f6f8; }
+  .mn-nav-item.active { background: #dce9ff; color: #0073ea; font-weight: 500; }
+  .mn-nav-item .dot { width: 8px; height: 8px; border-radius: 50%; background: #f6af2d; flex-shrink: 0; }
+  .mn-section { padding: 10px 12px 4px; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Monday board area */
+  .mn-board { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+  .mn-board-header { padding: 10px 16px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .mn-board-header h2 { font-size: 18px; font-weight: 700; color: #323338; }
+  .mn-board-header .tag { font-size: 11px; background: #e2e6ff; color: #0073ea; padding: 2px 8px; border-radius: 10px; }
+  .mn-board-toolbar { padding: 8px 16px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .mn-board-toolbar button { background: none; border: 1px solid #e0e0e0; border-radius: 4px; padding: 4px 10px; font-size: 12px; color: #676879; cursor: default; }
+  .mn-board-toolbar .new-task { background: #0073ea; color: #fff; border-color: #0073ea; font-weight: 600; }
+  .mn-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .mn-table th { background: #f5f6f8; border-bottom: 1px solid #e0e0e0; padding: 8px 12px; text-align: left; color: #676879; font-weight: 500; font-size: 12px; }
+  .mn-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #323338; }
+  .mn-group-header { background: #f5f6f8; color: #0073ea; font-weight: 600; padding: 6px 12px; font-size: 13px; }
+
+  /* ── Monday Sidekick panel (real selectors) ── */
+  /*
+    Key selectors the extension should match:
+      id="sidekick-pane"              ← PRIMARY container
+      id="sidekick-fab"               ← FAB button (closed state)
+      aria-label="Agent chat header"  ← header
+      role="textbox" + placeholder    ← contenteditable input
+  */
+  #sidekick-pane {
+    width: 360px; min-width: 360px;
+    border-left: 1px solid #e0e0e0;
+    background: #fff;
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  /* Sidekick header */
+  .sidekick-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; border-bottom: 1px solid #e8e8e8;
+    background: #fff; flex-shrink: 0;
+  }
+  .sidekick-agent-info { display: flex; align-items: center; gap: 8px; }
+  .sidekick-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #f6af2d, #e44258, #a25ddc);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sidekick-avatar svg { width: 16px; height: 16px; }
+  .sidekick-name { font-size: 14px; font-weight: 600; color: #323338; }
+  .sidekick-header-actions { display: flex; gap: 4px; }
+  .sidekick-header-actions button { background: none; border: none; cursor: pointer; color: #676879; padding: 4px; border-radius: 4px; font-size: 14px; }
+  .sidekick-header-actions button:hover { background: #f5f6f8; }
+
+  /* Sidekick body */
+  .sidekick-body { flex: 1; overflow-y: auto; padding: 20px 16px 12px; display: flex; flex-direction: column; }
+  .sidekick-greeting h3 { font-size: 18px; font-weight: 700; color: #323338; margin-bottom: 4px; }
+  .sidekick-greeting p { font-size: 13px; color: #676879; margin-bottom: 20px; }
+
+  /* Suggestion chips */
+  .suggestion-chips { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .suggestion-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px;
+    background: #fff; cursor: pointer; font-size: 13px; color: #323338;
+    text-align: left; transition: background 0.15s;
+  }
+  .suggestion-chip:hover { background: #f5f6f8; }
+  .chip-icon { width: 20px; height: 20px; flex-shrink: 0; }
+
+  /* Input area */
+  .sidekick-input-area { flex-shrink: 0; padding: 8px 0 0; }
+  .sidekick-input-box {
+    border: 1px solid #c3c6d4; border-radius: 8px;
+    background: #fff; overflow: hidden;
+  }
+
+  /* Context chip */
+  .context-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #dce9ff; border-radius: 12px;
+    padding: 2px 8px; margin: 8px 10px 4px;
+    font-size: 11px; color: #0073ea;
+  }
+  .context-chip button { background: none; border: none; cursor: pointer; color: #0073ea; font-size: 12px; padding: 0 0 0 4px; line-height: 1; }
+
+  /* contenteditable input — role="textbox" matches extension */
+  .sidekick-editor-wrap { padding: 8px 10px; min-height: 48px; }
+  [data-testid="sidekick-input"][contenteditable="true"] {
+    outline: none;
+    font-size: 13px; color: #323338;
+    min-height: 32px;
+    line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .sidekick-placeholder { font-size: 13px; color: #aaa; pointer-events: none; }
+
+  /* Input footer */
+  .sidekick-input-footer { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 8px; }
+  .sidekick-input-footer .left-actions { display: flex; gap: 6px; align-items: center; }
+  .sidekick-input-footer button { background: none; border: none; cursor: pointer; color: #676879; padding: 4px; border-radius: 4px; font-size: 12px; }
+  .skills-btn { border: 1px solid #e0e0e0 !important; border-radius: 4px !important; padding: 4px 8px !important; display: flex; align-items: center; gap: 4px; font-size: 11px !important; color: #676879 !important; }
+  .send-btn-mn { background: #0073ea !important; color: #fff !important; border-radius: 50% !important; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px !important; opacity: 0.4; }
+  .send-btn-mn.active { opacity: 1 !important; }
+
+  /* FAB button — shown when pane is closed (not used in this TC but kept for reference) */
+  #sidekick-fab {
+    position: fixed; bottom: 20px; right: 20px;
+    background: linear-gradient(135deg, #a25ddc, #e44258, #f6af2d);
+    border: none; border-radius: 24px;
+    padding: 8px 16px 8px 12px;
+    color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: none; /* hidden: pane is open */
+    align-items: center; gap: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SPEC SIDEBAR ══════════ -->
+<div class="sidebar">
+  <h2>SAI-DET-004 — Monday Sidekick</h2>
+
+  <div class="spec-block">
+    <h3>Test Case</h3>
+    <span class="badge badge-tc">SAI-DET-004</span><br>
+    <span class="badge badge-tier">Expected: Tier 2</span><br>
+    <span class="badge badge-type">Happy Path</span>
+    <p style="margin-top:6px;">Extension detects Monday.com Sidekick AI pane via <code>id="sidekick-pane"</code>. No user interaction required.</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Signal C — Key Selectors</h3>
+    <div class="selector-row">id="sidekick-pane" ← PRIMARY</div>
+    <div class="selector-row">id="sidekick-fab" (FAB, closed state)</div>
+    <div class="selector-row">aria-label="Agent chat header"</div>
+    <div class="selector-row">role="textbox" contenteditable="true"</div>
+    <div class="selector-row">placeholder: "Message Sidekick..."</div>
+    <div class="selector-row">input[type="file"][multiple] (hidden)</div>
+    <p style="margin-top:6px; color:#ffb74d; font-size:11px;">⚠️ shadow_ai_details value TBC — run test to confirm. Likely "known_ai_element" or "ai_button".</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Expected Druid Fields</h3>
+    <ul>
+      <li><b>shadow_ai_tier</b> = 2</li>
+      <li><b>shadow_ai_name</b> = "monday.com"</li>
+      <li><b>shadow_ai_details</b> = TBC after first run</li>
+      <li><b>shadow_ai</b> = "Static DOM Analysis"</li>
+      <li><b>resource</b> = "shadow_ai_detected"</li>
+      <li><b>rule_name</b> = "shadow_ai"</li>
+      <li><b>source</b> = "isolation"</li>
+    </ul>
+    <p style="margin-top:6px; color:#ffb74d; font-size:11px;">shadow_ai_name pattern confirmed from GitLab log (uses domain, not feature name).</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Pre-conditions</h3>
+    <ul>
+      <li>Shadow AI global toggle ON</li>
+      <li>Monday.com CASB profile enabled (Sanctioned), action = Isolate</li>
+      <li>OR "Business and Economy" category enabled</li>
+      <li>Session is isolated (Surrogate Browser)</li>
+      <li>Sidekick pane must be open/visible on load</li>
+      <li>Do NOT interact with the chat input</li>
+    </ul>
+  </div>
+
+  <div class="spec-block">
+    <h3>Verification Checklist</h3>
+    <ul class="checklist" id="checklist">
+      <li>Tier 2 log generated in Web Logs</li>
+      <li>Event Type = "AI Presence Detected"</li>
+      <li>Shadow AI tab visible in Event Details</li>
+      <li>shadow_ai_tier = 2</li>
+      <li>shadow_ai_name = "monday.com"</li>
+      <li>shadow_ai_details — record actual value</li>
+      <li>shadow_ai = "Static DOM Analysis"</li>
+      <li>No Tier 3 generated</li>
+    </ul>
+    <button onclick="markAll()" style="margin-top:8px; background:#1a3a2e; border:none; color:#4caf82; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">✓ Mark All Done</button>
+  </div>
+
+  <div class="spec-block">
+    <h3>Page Event Log</h3>
+    <div class="event-log" id="eventLog">
+      <span class="ts">[--:--:--]</span> Fixture page loaded...<br>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN CONTENT ══════════ -->
+<div class="main">
+
+  <!-- Fake browser bar -->
+  <div class="fake-bar">
+    <span class="dots"></span>
+    <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/det_004_monday_ai_sidebar.html</div>
+    <span class="iso-badge">🔒 Isolated</span>
+  </div>
+
+  <!-- Monday top nav -->
+  <div class="mn-topnav">
+    <div class="mn-logo">mo<span>n</span>day</div>
+    <div class="spacer"></div>
+    <div class="search-box">Search for anything...</div>
+    <button class="mn-board-toolbar" style="background:none; border:none; color:#676879; font-size:12px; cursor:default;">👤 Invite / 1</button>
+  </div>
+
+  <!-- Content -->
+  <div class="mn-content">
+
+    <!-- Monday left sidebar -->
+    <div class="mn-sidebar">
+      <div class="ws-header">Workspace</div>
+      <div class="mn-nav-item">⬛ Workspace</div>
+      <div class="mn-nav-item">🤖 My agents</div>
+      <div class="mn-section">Content</div>
+      <div class="mn-nav-item active"><span class="dot"></span> j98</div>
+      <div class="mn-nav-item" style="color:#aaa; font-size:12px;">⚙ Manage workspace</div>
+    </div>
+
+    <!-- Board -->
+    <div class="mn-board">
+      <div class="mn-board-header">
+        <h2>j98</h2>
+        <span class="tag">Overview</span>
+        <span style="margin-left:auto; font-size:13px; color:#676879;">Project Health</span>
+      </div>
+      <div class="mn-board-toolbar">
+        <button class="new-task">+ New task</button>
+        <button>🔍 Search</button>
+        <button>👤 Person</button>
+        <button>⊟ Filter</button>
+        <button>↑↓ Sort</button>
+        <button>👁 Hide</button>
+        <button>⊞ Group by</button>
+      </div>
+      <div style="overflow-y:auto; flex:1;">
+        <table class="mn-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Status</th>
+              <th>Due date</th>
+              <th>Timeline</th>
+              <th>Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="5" class="mn-group-header">▶ To-Do &nbsp; <span style="color:#aaa; font-weight:400; font-size:12px;">3 Tasks</span></td>
+            </tr>
+            <tr>
+              <td style="color:#aaa; font-size:12px;" colspan="5">+ Add task</td>
+            </tr>
+            <tr>
+              <td colspan="5" class="mn-group-header" style="color:#00c875;">✓ Completed</td>
+            </tr>
+            <tr>
+              <td style="color:#aaa; font-size:12px;" colspan="5">+ Add task</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="padding:16px;">
+          <button style="background:none; border:1px dashed #ccc; border-radius:6px; padding:8px 16px; color:#aaa; font-size:13px; cursor:default;">+ Add new group</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MONDAY SIDEKICK PANE (real selectors) ══ -->
+    <!--
+      Extension detection targets — real Monday.com Sidekick selectors:
+        id="sidekick-pane"               ← PRIMARY container
+        aria-label="Agent chat header"   ← header role=banner
+        role="textbox" contenteditable   ← input (NOT textarea)
+        placeholder div: "Message Sidekick..."
+        input[type="file"][multiple]     ← hidden file input
+    -->
+    <div id="sidekick-pane" class="pane--open">
+
+      <!-- Header — aria-label="Agent chat header" matches extension -->
+      <header role="banner" aria-label="Agent chat header" class="sidekick-header">
+        <div class="sidekick-agent-info">
+          <!-- Monday's Sidekick sparkle SVG icon (same paths as FAB) -->
+          <div class="sidekick-avatar">
+            <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M10.9552 2.3253C10.5135 2.06774 10.0087 1.97936 9.52913 2.08542C9.04958 2.19147 8.62556 2.48185 8.33278 2.90102C8.04 3.32018 7.90876 3.82773 7.90118 4.33022C7.90118 4.82008 7.90623 5.19632 7.94409 5.9387C8.10058 7.39062 8.7669 8.82235 9.80677 9.89551L13.1813 6.65835C12.101 5.29985 12.3534 3.02727 10.9526 2.32025L10.9552 2.3253Z" fill="#f6af2d"/>
+              <path d="M9.78131 9.86167C10.8161 10.9424 12.2094 11.6722 13.6556 11.9019C14.6096 12.0055 15.5813 12.0585 16.601 11.9701C17.0326 11.6924 17.4642 11.4171 17.7747 11.0005C17.8983 10.5232 18.022 10.046 17.9539 9.53089C16.8711 7.28608 14.2361 7.98301 13.1558 6.62451L9.78131 9.86167Z" fill="#e44258"/>
+              <path d="M10.1312 10.1665C9.10223 9.08573 7.71686 8.35598 6.27879 8.1262C5.33011 8.02267 4.36387 7.96964 3.34994 8.05802C2.92078 8.33578 2.49162 8.61101 2.18292 9.02765C2.05995 9.50489 1.93697 9.98214 2.24567 10.9492C3.0814 12.7421 5.70155 12.0451 6.77571 13.4036L10.1312 10.1665Z" fill="#0073ea"/>
+              <path d="M8.97517 17.7167C9.41437 17.9743 9.91632 18.0626 10.3932 17.9566C10.87 17.8505 11.2916 17.5601 11.5828 17.141C12.0044 16.2143 12.0119 15.7118 12.0119 15.2219C11.9693 14.1033 11.1511 11.2196 10.1171 10.1465L6.7616 13.3836C7.83576 14.7421 7.58479 17.0147 8.97768 17.7217L8.97517 17.7167Z" fill="#a25ddc"/>
+            </svg>
+          </div>
+          <span class="sidekick-name">Sidekick</span>
+        </div>
+        <div class="sidekick-header-actions">
+          <button aria-label="Start new chat" id="start-new-chat" title="Start new chat">✎</button>
+          <button aria-label="Detach from sidebar" title="Detach">⊡</button>
+          <button aria-label="Close Sidekick" title="Close Sidekick">✕</button>
+        </div>
+      </header>
+
+      <!-- Body: greeting + suggestions -->
+      <div class="sidekick-body">
+        <div class="sidekick-greeting">
+          <h3>Hey Obo,</h3>
+          <p>What would you like to work on today?</p>
+        </div>
+        <div class="suggestion-chips">
+          <button class="suggestion-chip">
+            <span class="chip-icon">📅</span>
+            Summarize tomorrow's calendar meetings
+          </button>
+          <button class="suggestion-chip">
+            <span class="chip-icon">#</span>
+            Find unanswered questions on Slack
+          </button>
+          <button class="suggestion-chip">
+            <span class="chip-icon">📄</span>
+            Turn a doc into a slide deck
+          </button>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="sidekick-input-area" style="padding: 0 12px 12px;">
+        <div class="sidekick-input-box">
+
+          <!-- Hidden file input — matches extension's file upload detection -->
+          <input type="file" multiple
+            accept="image/png,image/jpeg,image/gif,application/pdf,text/csv,text/plain"
+            style="display:none;"
+            aria-hidden="true">
+
+          <!-- Context chip -->
+          <div style="padding: 6px 8px 0;">
+            <div class="context-chip">
+              <span>📋</span>
+              <span>j98</span>
+              <button aria-label="Remove j98">✕</button>
+            </div>
+          </div>
+
+          <!-- contenteditable input — role="textbox" matches extension -->
+          <div class="sidekick-editor-wrap">
+            <div
+              data-testid="sidekick-input"
+              contenteditable="true"
+              role="textbox"
+              spellcheck="true"
+              aria-label="Message Sidekick"
+              aria-multiline="true"
+              data-lexical-editor="true"
+              style="user-select: text; white-space: pre-wrap; word-break: break-word; outline: none; min-height: 32px; font-size: 13px; color: #323338;"
+              id="sidekick-editor"
+            ></div>
+            <!-- Placeholder shown when editor empty -->
+            <div class="sidekick-placeholder" id="sidekick-ph" aria-hidden="true">Message Sidekick...</div>
+          </div>
+
+          <!-- Footer actions -->
+          <div class="sidekick-input-footer">
+            <div class="left-actions">
+              <button class="skills-btn" title="Connect tools">⚙ Use skills</button>
+              <button title="Add files or photos" aria-label="Add files or photos">📎</button>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button title="Start voice recording" aria-label="Start voice recording">🎙</button>
+              <button class="send-btn-mn" id="send-btn" aria-label="Send message" aria-disabled="true">↑</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /#sidekick-pane -->
+
+    <!-- FAB button — would show when pane is closed (hidden here since pane is open) -->
+    <button id="sidekick-fab" type="button" aria-label="How can I help?" style="display:none;">
+      ✦ How can I help?
+    </button>
+
+  </div><!-- /.mn-content -->
+</div><!-- /.main -->
+
+<script>
+  const log = document.getElementById('eventLog');
+  function logEv(msg, cls = '') {
+    const ts = new Date().toTimeString().slice(0, 8);
+    log.innerHTML += `<span class="ts">[${ts}]</span> <span class="${cls}">${msg}</span><br>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    logEv('DOM ready. Signal C elements present:', 'ev-tier2');
+    logEv('  → id="sidekick-pane" ✓', 'ev-ok');
+    logEv('  → aria-label="Agent chat header" ✓', 'ev-ok');
+    logEv('  → role="textbox" contenteditable ✓', 'ev-ok');
+    logEv('  → placeholder "Message Sidekick..." ✓', 'ev-ok');
+    logEv('  → input[type="file"][multiple] ✓', 'ev-ok');
+    logEv('  → id="sidekick-fab" (hidden) ✓', 'ev-ok');
+    logEv('Waiting for extension Tier 2 log...', 'ev-tier2');
+  });
+
+  // Editor placeholder logic
+  const editor = document.getElementById('sidekick-editor');
+  const ph = document.getElementById('sidekick-ph');
+  const sendBtn = document.getElementById('send-btn');
+  let interactionCount = 0;
+
+  editor.addEventListener('input', () => {
+    const empty = editor.textContent.trim() === '';
+    ph.style.display = empty ? 'block' : 'none';
+    sendBtn.classList.toggle('active', !empty);
+    sendBtn.setAttribute('aria-disabled', empty ? 'true' : 'false');
+  });
+
+  // Interaction guard
+  ['keydown', 'paste'].forEach(evt => {
+    editor.addEventListener(evt, () => {
+      interactionCount++;
+      logEv(`⚠ Interaction (${evt}) — TC requires no interaction for Tier 2 only`, 'ev-warn');
+    });
+  });
+
+  // Checklist
+  function markAll() {
+    document.querySelectorAll('.checklist li').forEach(li => li.classList.add('done'));
+    logEv('All checklist items marked ✓', 'ev-ok');
+  }
+  document.querySelectorAll('.checklist li').forEach(li => {
+    li.addEventListener('click', () => {
+      li.classList.toggle('done');
+      logEv(`Checklist: "${li.textContent.trim()}" ${li.classList.contains('done') ? '✓' : '○'}`, '');
+    });
+  });
+</script>
+</body>
+</html>
