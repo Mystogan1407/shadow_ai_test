@@ -182,17 +182,21 @@
   .send-btn-mn { background: #0073ea !important; color: #fff !important; border-radius: 50% !important; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px !important; opacity: 0.4; }
   .send-btn-mn.active { opacity: 1 !important; }
 
-  /* FAB button — shown when pane is closed (not used in this TC but kept for reference) */
+  /* FAB button — fixed bottom-right, visible on load */
   #sidekick-fab {
-    position: fixed; bottom: 20px; right: 20px;
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
     background: linear-gradient(135deg, #a25ddc, #e44258, #f6af2d);
     border: none; border-radius: 24px;
-    padding: 8px 16px 8px 12px;
+    padding: 10px 18px 10px 14px;
     color: #fff; font-size: 13px; font-weight: 600;
-    cursor: pointer; display: none; /* hidden: pane is open */
-    align-items: center; gap: 6px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    transition: box-shadow 0.15s;
   }
+  #sidekick-fab:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.35); }
+  #sidekick-fab .fab-icon { width: 20px; height: 20px; }
 </style>
 </head>
 <body>
@@ -217,21 +221,21 @@
     <div class="selector-row">role="textbox" contenteditable="true"</div>
     <div class="selector-row">placeholder: "Message Sidekick..."</div>
     <div class="selector-row">input[type="file"][multiple] (hidden)</div>
-    <p style="margin-top:6px; color:#ffb74d; font-size:11px;">⚠️ shadow_ai_details value TBC — run test to confirm. Likely "known_ai_element" or "ai_button".</p>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Pane injected into DOM on FAB click — extension must detect via MutationObserver or post-load scan.</p>
   </div>
 
   <div class="spec-block">
     <h3>Expected Druid Fields</h3>
     <ul>
       <li><b>shadow_ai_tier</b> = 2</li>
-      <li><b>shadow_ai_name</b> = "monday.com"</li>
-      <li><b>shadow_ai_details</b> = TBC after first run</li>
+      <li><b>shadow_ai_name</b> = "j97-force.monday.com"</li>
+      <li><b>shadow_ai_details</b> = "known_ai_element"</li>
       <li><b>shadow_ai</b> = "Static DOM Analysis"</li>
       <li><b>resource</b> = "shadow_ai_detected"</li>
       <li><b>rule_name</b> = "shadow_ai"</li>
       <li><b>source</b> = "isolation"</li>
     </ul>
-    <p style="margin-top:6px; color:#ffb74d; font-size:11px;">shadow_ai_name pattern confirmed from GitLab log (uses domain, not feature name).</p>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Confirmed from real j97-force.monday.com isolated test run.</p>
   </div>
 
   <div class="spec-block">
@@ -253,7 +257,7 @@
       <li>Event Type = "AI Presence Detected"</li>
       <li>Shadow AI tab visible in Event Details</li>
       <li>shadow_ai_tier = 2</li>
-      <li>shadow_ai_name = "monday.com"</li>
+      <li>shadow_ai_name = "j97-force.monday.com"</li>
       <li>shadow_ai_details — record actual value</li>
       <li>shadow_ai = "Static DOM Analysis"</li>
       <li>No Tier 3 generated</li>
@@ -357,7 +361,7 @@
         placeholder div: "Message Sidekick..."
         input[type="file"][multiple]     ← hidden file input
     -->
-    <div id="sidekick-pane" class="pane--open">
+    <div id="sidekick-pane" class="pane--open" style="display:none; transform:translateX(360px); transition:transform 0.25s cubic-bezier(0,0,0.2,1);">
 
       <!-- Header — aria-label="Agent chat header" matches extension -->
       <header role="banner" aria-label="Agent chat header" class="sidekick-header">
@@ -453,9 +457,19 @@
       </div>
     </div><!-- /#sidekick-pane -->
 
-    <!-- FAB button — would show when pane is closed (hidden here since pane is open) -->
-    <button id="sidekick-fab" type="button" aria-label="How can I help?" style="display:none;">
-      ✦ How can I help?
+    <!-- FAB button — visible on load, click to open Sidekick pane -->
+    <button id="sidekick-fab" type="button" aria-label="How can I help?" style="cursor: grab;">
+      <svg class="fab-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M10.9552 2.3253C10.5135 2.06774 10.0087 1.97936 9.52913 2.08542C9.04958 2.19147 8.62556 2.48185 8.33278 2.90102C8.04 3.32018 7.90876 3.82773 7.90118 4.33022C7.90118 4.82008 7.90623 5.19632 7.94409 5.9387C8.10058 7.39062 8.7669 8.82235 9.80677 9.89551L13.1813 6.65835C12.101 5.29985 12.3534 3.02727 10.9526 2.32025Z" fill="#FDD636"/>
+        <path d="M9.78131 9.86167C10.8161 10.9424 12.2094 11.6722 13.6556 11.9019C14.6096 12.0055 15.5813 12.0585 17.0326 11.6924C17.4642 11.4171 17.7747 11.0005 17.8983 10.5232C17.9539 9.53089 16.8711 7.28608 13.1558 6.62451Z" fill="#FF81E3"/>
+        <path d="M10.1312 10.1665C9.10223 9.08573 7.71686 8.35598 6.27879 8.1262C5.33011 8.02267 3.34994 8.05802 2.92078 8.33578C2.05995 9.50489 2.24567 10.9492 3.0814 12.7421C4.14 13.8 5.70155 12.0451 6.77571 13.4036Z" fill="#03FAFA"/>
+        <path d="M8.97517 17.7167C9.41437 17.9743 9.91632 18.0626 10.3932 17.9566C10.87 17.8505 11.2916 17.5601 11.5828 17.141C12.0044 16.2143 12.0119 15.2219 11.9693 14.1033C11.1511 11.2196 10.1171 10.1465L6.7616 13.3836C7.83576 14.7421 7.58479 17.0147 8.97768 17.7217Z" fill="#4800FF"/>
+        <path d="M17.7041 10.9548C17.9601 10.5129 18.048 10.0079 17.9426 9.5281C17.5485 8.62411 16.2109 7.89941 14.1127 7.94234C12.6696 8.0989 11.2466 8.76552 10.18 9.80585L13.3975 13.1819C14.7477 12.1012 17.0014 12.3562 17.7041 10.9548Z" fill="#BB63F4"/>
+        <path d="M10.1799 9.80566C9.10572 10.8409 8.15203 13.6817 7.99642 15.6083C8.08426 16.6284 8.36033 17.0602 8.63389 17.492C9.048 17.8026 9.99667 18.0501 10.9579 17.7395C12.7398 16.8986 12.0471 14.2624 13.3973 13.1817Z" fill="#0A72FE"/>
+        <path d="M9.80224 10.1866C10.8764 9.15132 11.8301 6.3106 11.9857 4.38396C11.8979 3.36382 11.6218 2.93203 11.3482 2.50024C10.9341 2.18966 9.4803 1.98817 9.03106 2.23058C7.24916 3.07143 7.93501 5.72983 6.58478 6.81057Z" fill="#A2D342"/>
+        <path d="M2.2566 9.03983C2.00061 9.48172 2.0503 10.4541 2.15571 10.9339C2.44433 11.3581 3.78201 12.0752 5.88014 12.0398C7.32323 11.8833 8.74624 11.2167 9.81288 10.1763L6.59541 6.80029C5.24518 7.88103 2.95932 7.63841 2.2566 9.03983Z" fill="#05CD59"/>
+      </svg>
+      How can I help?
     </button>
 
   </div><!-- /.mn-content -->
@@ -469,37 +483,75 @@
     log.scrollTop = log.scrollHeight;
   }
 
+  const fab = document.getElementById('sidekick-fab');
+  const pane = document.getElementById('sidekick-pane');
+  let paneOpen = false;
+
   window.addEventListener('DOMContentLoaded', () => {
-    logEv('DOM ready. Signal C elements present:', 'ev-tier2');
+    logEv('DOM ready.', 'ev-ok');
+    logEv('FAB visible: id="sidekick-fab" ✓', 'ev-ok');
+    logEv('id="sidekick-pane" NOT yet in visible DOM.', 'ev-warn');
+    logEv('⏳ Click the FAB button to open Sidekick pane...', 'ev-tier2');
+  });
+
+  // FAB click — show pane (simulate Monday injecting it into DOM)
+  fab.addEventListener('click', () => {
+    if (paneOpen) return;
+    paneOpen = true;
+
+    // Show pane, then animate in
+    pane.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        pane.style.transform = 'translateX(0)';
+      });
+    });
+
+    // Hide FAB
+    fab.style.display = 'none';
+
+    logEv('FAB clicked — sidekick-pane injected into DOM ✓', 'ev-ok');
+    logEv('Signal C elements now present:', 'ev-tier2');
     logEv('  → id="sidekick-pane" ✓', 'ev-ok');
     logEv('  → aria-label="Agent chat header" ✓', 'ev-ok');
     logEv('  → role="textbox" contenteditable ✓', 'ev-ok');
     logEv('  → placeholder "Message Sidekick..." ✓', 'ev-ok');
     logEv('  → input[type="file"][multiple] ✓', 'ev-ok');
-    logEv('  → id="sidekick-fab" (hidden) ✓', 'ev-ok');
     logEv('Waiting for extension Tier 2 log...', 'ev-tier2');
+
+    // Wire up editor after pane visible
+    wireEditor();
   });
 
-  // Editor placeholder logic
-  const editor = document.getElementById('sidekick-editor');
-  const ph = document.getElementById('sidekick-ph');
-  const sendBtn = document.getElementById('send-btn');
-  let interactionCount = 0;
-
-  editor.addEventListener('input', () => {
-    const empty = editor.textContent.trim() === '';
-    ph.style.display = empty ? 'block' : 'none';
-    sendBtn.classList.toggle('active', !empty);
-    sendBtn.setAttribute('aria-disabled', empty ? 'true' : 'false');
+  // Close button hides pane, shows FAB
+  document.addEventListener('click', (e) => {
+    if (e.target.getAttribute('aria-label') === 'Close Sidekick') {
+      pane.style.transform = 'translateX(360px)';
+      setTimeout(() => { pane.style.display = 'none'; }, 260);
+      fab.style.display = '';
+      paneOpen = false;
+      logEv('Sidekick pane closed. FAB restored.', 'ev-warn');
+    }
   });
 
-  // Interaction guard
-  ['keydown', 'paste'].forEach(evt => {
-    editor.addEventListener(evt, () => {
-      interactionCount++;
-      logEv(`⚠ Interaction (${evt}) — TC requires no interaction for Tier 2 only`, 'ev-warn');
+  function wireEditor() {
+    const editor = document.getElementById('sidekick-editor');
+    const ph = document.getElementById('sidekick-ph');
+    const sendBtn = document.getElementById('send-btn');
+
+    editor.addEventListener('input', () => {
+      const empty = editor.textContent.trim() === '';
+      ph.style.display = empty ? 'block' : 'none';
+      sendBtn.classList.toggle('active', !empty);
+      sendBtn.setAttribute('aria-disabled', empty ? 'true' : 'false');
     });
-  });
+
+    ['keydown', 'paste'].forEach(evt => {
+      editor.addEventListener(evt, () => {
+        logEv(`⚠ Interaction (${evt}) — TC requires no interaction for Tier 2 only`, 'ev-warn');
+      });
+    });
+  }
 
   // Checklist
   function markAll() {
