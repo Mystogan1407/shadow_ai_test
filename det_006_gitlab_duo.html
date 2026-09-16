@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAI-DET-006 — GitLab Duo Chat (Simulated)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f4f4f4;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar (test spec panel) ── */
+  .sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 12px;
+    overflow-y: auto;
+    font-size: 12px;
+  }
+  .sidebar h2 {
+    font-size: 13px;
+    color: #fc6d26;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .spec-block { background: #12122a; border-radius: 6px; padding: 10px; }
+  .spec-block h3 { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.8px; }
+  .spec-block p, .spec-block li { color: #ccc; line-height: 1.5; }
+  .spec-block ul { padding-left: 14px; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .badge-tc   { background: #2d4a3e; color: #4caf82; }
+  .badge-tier { background: #1a3a5c; color: #64b5f6; }
+  .badge-type { background: #3a2d1a; color: #ffb74d; }
+
+  .selector-row {
+    background: #0d0d1a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-top: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #a5d6a7;
+    word-break: break-all;
+  }
+
+  .event-log {
+    flex: 1;
+    background: #0d0d1a;
+    border-radius: 6px;
+    padding: 8px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 11px;
+    color: #888;
+    min-height: 80px;
+  }
+  .event-log .ev-tier2  { color: #64b5f6; }
+  .event-log .ev-ok     { color: #4caf82; }
+  .event-log .ev-warn   { color: #ffb74d; }
+  .event-log .ts        { color: #555; margin-right: 4px; }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 4px 0; color: #aaa; }
+  .checklist li::before { content: '○ '; color: #555; }
+  .checklist li.done::before { content: '✓ '; color: #4caf82; }
+  .checklist li.done { color: #4caf82; }
+
+  /* ── Main content (GitLab chrome simulation) ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* Fake browser bar */
+  .fake-bar {
+    background: #2a2a2a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+  .dots {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #555,
+                16px 0 0 0 #555, 16px 0 0 -1px #444,
+                32px 0 0 0 #555, 32px 0 0 -1px #444;
+    background: #ff5f56;
+    flex-shrink: 0;
+  }
+  .url-bar {
+    flex: 1;
+    background: #3a3a3a;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #bbb;
+    font-family: monospace;
+  }
+  .iso-badge {
+    font-size: 10px;
+    background: #1a3a1a;
+    color: #4caf82;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* GitLab top nav */
+  .gl-topnav {
+    background: #171321;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 48px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .gl-topnav .logo {
+    font-size: 18px;
+    color: #fc6d26;
+    font-weight: 700;
+  }
+  .gl-topnav .search-box {
+    flex: 1;
+    max-width: 320px;
+    background: #2a2438;
+    border: 1px solid #3a3450;
+    border-radius: 6px;
+    padding: 5px 12px;
+    color: #999;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .gl-topnav .search-box span { color: #555; }
+
+  /* GL content layout */
+  .gl-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* GitLab left sidebar */
+  .gl-sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: #fff;
+    border-right: 1px solid #e5e5e5;
+    padding: 12px 0;
+    font-size: 13px;
+    color: #333;
+    overflow-y: auto;
+  }
+  .gl-sidebar .proj-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 12px;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 8px;
+  }
+  .gl-sidebar .proj-avatar {
+    width: 28px; height: 28px;
+    background: #6b4fbb;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .gl-sidebar .proj-name { font-weight: 600; font-size: 13px; }
+  .gl-sidebar .nav-item {
+    display: flex; align-items: center;
+    padding: 6px 16px;
+    color: #555;
+    gap: 8px;
+    cursor: default;
+  }
+  .gl-sidebar .nav-item:hover { background: #f5f5f5; }
+  .gl-sidebar .nav-item .icon { width: 16px; text-align: center; color: #888; }
+  .gl-sidebar .nav-section { padding: 12px 16px 4px; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* GL main area */
+  .gl-main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Repository content */
+  .repo-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    min-width: 0;
+  }
+  .repo-content h1 { font-size: 20px; margin-bottom: 4px; }
+  .repo-content .breadcrumb { font-size: 12px; color: #888; margin-bottom: 16px; }
+  .file-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .file-table th { text-align: left; padding: 8px 12px; background: #f9f9f9; border-bottom: 1px solid #e5e5e5; color: #555; font-weight: 500; }
+  .file-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; color: #333; }
+  .file-table tr:hover td { background: #f9f9f9; }
+  .commit-row { display: flex; align-items: center; gap: 8px; background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #555; }
+  .commit-hash { background: #ede9f5; color: #6b4fbb; border-radius: 4px; padding: 2px 6px; font-family: monospace; font-size: 11px; }
+
+  /* ── GITLAB DUO CHAT PANEL (real selectors) ── */
+  .ai-panels {
+    display: flex;
+    width: 400px;
+    min-width: 400px;
+    border-left: 1px solid #e5e5e5;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  /* aside#ai-panel-portal — matches extension selector */
+  aside#ai-panel-portal {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #fafafa;
+  }
+  .panel-header h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+  .panel-header-controls { display: flex; gap: 6px; }
+  .panel-header-controls button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .panel-header-controls button:hover { background: #f0f0f0; }
+
+  /* #duo-chat — KEY selector for extension */
+  #duo-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .duo-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .duo-chat-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+    padding: 24px 0 32px;
+  }
+  .duo-chat-empty-state .emoji { font-size: 48px; }
+  .duo-chat-empty-state h2 { font-size: 16px; color: #333; }
+  .duo-chat-empty-state p { font-size: 13px; color: #888; }
+
+  .duo-chat-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .duo-chat-suggestion-button {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #444;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+  }
+  .duo-chat-suggestion-button:hover { background: #f5f5f5; }
+
+  /* Footer / input area — .duo-chat-input is a key selector */
+  [data-testid="chat-footer"] {
+    padding: 12px;
+    border-top: 1px solid #e5e5e5;
+    background: #fafafa;
+    flex-shrink: 0;
+  }
+
+  .duo-chat-input {
+    border: 1px solid #c0c0c0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .duo-chat-input-label {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #888;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+  }
+
+  /* textarea[data-testid="chat-prompt-input"] — matches extension */
+  textarea[data-testid="chat-prompt-input"] {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #333;
+    resize: none;
+    font-family: inherit;
+    height: 80px;
+    background: #fff;
+  }
+
+  .input-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 8px;
+  }
+  .send-btn {
+    background: #6b4fbb;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.5;
+  }
+  .send-btn:not(:disabled) { opacity: 1; }
+
+  /* Right nav rail */
+  .ai-navigation-rail {
+    width: 40px;
+    border-left: 1px solid #e5e5e5;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 6px;
+  }
+  .ai-navigation-rail button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #888;
+    font-size: 14px;
+  }
+  .ai-navigation-rail button.selected { background: #ede9f5; color: #6b4fbb; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<div class="sidebar">
+  <h2>SAI-DET-006 — GitLab Duo</h2>
+
+  <div class="spec-block">
+    <h3>Test Case</h3>
+    <span class="badge badge-tc">SAI-DET-006</span><br>
+    <span class="badge badge-tier">Expected: Tier 2</span><br>
+    <span class="badge badge-type">Happy Path</span>
+    <p style="margin-top:6px;">Extension detects GitLab Duo Chat drawer via known element ID. No user interaction required.</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Signal C — Key Selectors</h3>
+    <p style="color:#aaa; margin-bottom:4px;">Extension should match one or more:</p>
+    <div class="selector-row">id="duo-chat"</div>
+    <div class="selector-row">id="ai-panel-portal"</div>
+    <div class="selector-row">class="duo-chat"</div>
+    <div class="selector-row">data-testid="chat-component"</div>
+    <div class="selector-row">aria-label="GitLab Duo Chat"</div>
+    <div class="selector-row">data-testid="chat-prompt-input"</div>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Verified on real gitlab.com — shadow_ai_details = "known_ai_element".</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Expected Druid Fields</h3>
+    <ul>
+      <li><b>shadow_ai_tier</b> = 2</li>
+      <li><b>shadow_ai_name</b> = "gitlab.com"</li>
+      <li><b>shadow_ai_details</b> = "known_ai_element"</li>
+      <li><b>shadow_ai</b> = "Static DOM Analysis"</li>
+      <li><b>resource</b> = "shadow_ai_detected"</li>
+      <li><b>rule_name</b> = "shadow_ai"</li>
+      <li><b>source</b> = "isolation"</li>
+      <li><b>Interaction Type</b> = NOT shown (Tier 2)</li>
+    </ul>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Confirmed from real GitLab.com test run.</p>
+  </div>
+
+  <div class="spec-block">
+    <h3>Pre-conditions</h3>
+    <ul>
+      <li>Shadow AI global toggle ON</li>
+      <li>"Computer and Internet Info" or "Code Repositories" category enabled, action = Isolate</li>
+      <li>OR: gitlab.com CASB profile enabled</li>
+      <li>Session is isolated (Surrogate Browser)</li>
+      <li>Do NOT interact with the chat input</li>
+    </ul>
+  </div>
+
+  <div class="spec-block">
+    <h3>Verification Checklist</h3>
+    <ul class="checklist" id="checklist">
+      <li id="chk1">Tier 2 log generated in Web Logs</li>
+      <li id="chk2">Event Type = "AI Presence Detected"</li>
+      <li id="chk3">Shadow AI tab visible in Event Details</li>
+      <li id="chk4">shadow_ai_tier = 2</li>
+      <li id="chk5">shadow_ai_name = "gitlab.com"</li>
+      <li id="chk6">shadow_ai_details = "known_ai_element"</li>
+      <li id="chk7">Detection Signal = "Static DOM Analysis"</li>
+      <li id="chk8">No Tier 3 generated</li>
+    </ul>
+    <button onclick="markAll()" style="margin-top:8px; background:#1a3a2e; border:none; color:#4caf82; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">✓ Mark All Done</button>
+  </div>
+
+  <div class="spec-block">
+    <h3>Page Event Log</h3>
+    <div class="event-log" id="eventLog">
+      <span class="ts">[--:--:--]</span> Fixture page loaded. Awaiting extension detection...<br>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN CONTENT ══════════ -->
+<div class="main">
+
+  <!-- Fake browser bar -->
+  <div class="fake-bar">
+    <span class="dots"></span>
+    <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/det_006_gitlab_duo.html</div>
+    <span class="iso-badge">🔒 Isolated</span>
+  </div>
+
+  <!-- GitLab top nav -->
+  <div class="gl-topnav">
+    <span class="logo">G</span>
+    <div class="search-box">
+      <span>⌕</span> Search or go to...
+      <span style="margin-left:auto; font-size:10px; color:#444">/</span>
+    </div>
+    <span style="color:#aaa; font-size:12px; margin-left:auto;">Nguyễn Hữu Tài</span>
+  </div>
+
+  <!-- GL content -->
+  <div class="gl-content">
+
+    <!-- GitLab left sidebar -->
+    <div class="gl-sidebar">
+      <div class="proj-header">
+        <div class="proj-avatar">T</div>
+        <div>
+          <div class="proj-name">test_repo</div>
+          <div style="font-size:11px; color:#888">Private</div>
+        </div>
+      </div>
+      <div class="nav-item"><span class="icon">⊞</span> Plan</div>
+      <div class="nav-item"><span class="icon">✱</span> Members</div>
+      <div class="nav-item"><span class="icon">⇄</span> Merge requests</div>
+      <div class="nav-section">Code</div>
+      <div class="nav-item" style="color:#6b4fbb; font-weight:500;"><span class="icon">⊡</span> Repository</div>
+      <div class="nav-item"><span class="icon">↗</span> Build</div>
+      <div class="nav-item"><span class="icon">◎</span> Secure</div>
+      <div class="nav-item"><span class="icon">⚙</span> Settings</div>
+    </div>
+
+    <!-- GL main area -->
+    <div class="gl-main">
+
+      <!-- Repository content -->
+      <div class="repo-content">
+        <div class="breadcrumb">Nguyễn Hữu Tài / test_repo</div>
+        <h1>📁 test_repo</h1>
+        <div class="commit-row">
+          <span>Initial commit</span>
+          <span style="color:#888">· Nguyễn Hữu Tài authored just now</span>
+          <span class="commit-hash">92382d3b</span>
+        </div>
+        <table class="file-table">
+          <thead>
+            <tr><th>Name</th><th>Last commit</th><th>Last update</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>📄 README.md</td>
+              <td>Initial commit</td>
+              <td>just now</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 20px; padding: 16px; background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 6px;">
+          <h3 style="font-size:14px; margin-bottom:8px;">README.md</h3>
+          <h2 style="font-size:18px; margin-bottom:8px;">test_repo</h2>
+          <h3 style="font-size:14px; margin-bottom:6px;">Getting started</h3>
+          <p style="font-size:12px; color:#555; line-height:1.6;">To make it easy for you to get started with GitLab, here's a list of recommended next steps...</p>
+        </div>
+      </div>
+
+      <!-- ══ GITLAB DUO CHAT PANEL (real DOM selectors) ══ -->
+      <!--
+        Extension detection targets — real GitLab Duo Chat selectors:
+          id="ai-panel-portal"        ← aside wrapper
+          id="duo-chat"               ← main chat container (PRIMARY)
+          class="duo-chat"            ← same element
+          data-testid="chat-component"
+          data-testid="chat-prompt-input"   ← textarea
+          placeholder="Type /help to learn more"
+      -->
+      <div class="ai-panels" data-testid="ai-panels">
+        <div style="display:flex; flex:1;">
+
+          <!-- Main panel: aside#ai-panel-portal -->
+          <aside id="ai-panel-portal" aria-label="GitLab Duo Chat">
+
+            <div class="panel-header">
+              <div class="panel-header-inner">
+                <h3 data-testid="content-container-title">GitLab Duo Chat</h3>
+              </div>
+              <div class="panel-header-controls">
+                <button title="Maximize panel" data-testid="content-container-maximize-button">⤢</button>
+                <button title="Close panel" data-testid="content-container-close-button">✕</button>
+              </div>
+            </div>
+
+            <div data-testid="ai-panel-content" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+
+              <!-- id="duo-chat" — PRIMARY extension selector -->
+              <div id="duo-chat"
+                   role="complementary"
+                   data-testid="chat-component"
+                   class="duo-chat web-only">
+
+                <!-- Chat history -->
+                <div data-testid="chat-history" class="duo-chat-history">
+                  <div data-testid="gl-duo-chat-empty-state" class="duo-chat-empty-state">
+                    <div class="emoji">👋</div>
+                    <h2 data-testid="gl-duo-chat-empty-state-title">
+                      I am GitLab Duo Chat, your personal AI-powered assistant.
+                    </h2>
+                    <p data-testid="gl-duo-chat-empty-state-subtitle">
+                      How can I help you today?
+                    </p>
+                    <div class="duo-chat-suggestions">
+                      <button class="duo-chat-suggestion-button">Show me automated testing strategies</button>
+                      <button class="duo-chat-suggestion-button">What are code review best practices?</button>
+                      <button class="duo-chat-suggestion-button">How do I debug issues with GitLab runners?</button>
+                      <button class="duo-chat-suggestion-button">How can I improve my code security?</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Chat footer / input -->
+                <footer data-testid="chat-footer">
+                  <form data-testid="chat-prompt-form">
+                    <div class="duo-chat-input">
+                      <div class="duo-chat-input-label">GitLab Duo Chat</div>
+                      <div class="duo-chat-input-wrap">
+                        <!-- textarea[data-testid="chat-prompt-input"] — key selector -->
+                        <textarea
+                          data-testid="chat-prompt-input"
+                          placeholder="Type /help to learn more"
+                          rows="4"
+                          class="duo-chat-textarea"
+                          aria-label="GitLab Duo Chat input"
+                          id="gl-form-textarea-127"
+                        ></textarea>
+                      </div>
+                      <div class="input-footer">
+                        <button
+                          data-testid="chat-prompt-submit-button"
+                          aria-label="Send chat message."
+                          class="send-btn"
+                          disabled
+                          type="submit"
+                        >↑</button>
+                      </div>
+                    </div>
+                  </form>
+                </footer>
+
+              </div><!-- /#duo-chat -->
+            </div>
+          </aside>
+
+          <!-- Right nav rail -->
+          <nav aria-label="Duo controls">
+            <div class="ai-navigation-rail">
+              <button aria-label="New GitLab Duo Chat" data-testid="ai-new-toggle">✎</button>
+              <button class="selected js-tanuki-bot-chat-toggle"
+                      aria-label="Active GitLab Duo Chat"
+                      data-testid="ai-chat-toggle"
+                      aria-selected="true">💬</button>
+              <button aria-label="GitLab Duo Chat history" data-testid="ai-history-toggle">🕐</button>
+              <button aria-label="GitLab Duo sessions" data-testid="ai-sessions-toggle">✦</button>
+            </div>
+          </nav>
+
+        </div>
+      </div><!-- /.ai-panels -->
+
+    </div><!-- /.gl-main -->
+  </div><!-- /.gl-content -->
+</div><!-- /.main -->
+
+<script>
+  // ── Event log ──
+  const log = document.getElementById('eventLog');
+  function logEv(msg, cls = '') {
+    const ts = new Date().toTimeString().slice(0, 8);
+    log.innerHTML += `<span class="ts">[${ts}]</span> <span class="${cls}">${msg}</span><br>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ── Page load ──
+  window.addEventListener('DOMContentLoaded', () => {
+    logEv('DOM ready. Signal C elements present:', 'ev-tier2');
+    logEv('  → id="duo-chat" ✓', 'ev-ok');
+    logEv('  → id="ai-panel-portal" ✓', 'ev-ok');
+    logEv('  → class="duo-chat" ✓', 'ev-ok');
+    logEv('  → data-testid="chat-component" ✓', 'ev-ok');
+    logEv('  → data-testid="chat-prompt-input" ✓', 'ev-ok');
+    logEv('  → placeholder="Type /help to learn more" ✓', 'ev-ok');
+    logEv('Waiting for extension Tier 2 log...', 'ev-tier2');
+  });
+
+  // ── Interaction guard — warn if user types/pastes ──
+  const textarea = document.querySelector('textarea[data-testid="chat-prompt-input"]');
+  let interactionCount = 0;
+  ['keydown', 'paste', 'input'].forEach(evt => {
+    textarea.addEventListener(evt, () => {
+      interactionCount++;
+      logEv(`⚠ Interaction detected (${evt}) — TC requires no interaction for Tier 2 only test`, 'ev-warn');
+    });
+  });
+
+  // ── Enable send button when textarea has content ──
+  textarea.addEventListener('input', () => {
+    const btn = document.querySelector('[data-testid="chat-prompt-submit-button"]');
+    btn.disabled = textarea.value.trim() === '';
+    btn.style.opacity = btn.disabled ? '0.5' : '1';
+  });
+
+  // ── Checklist ──
+  function markAll() {
+    document.querySelectorAll('.checklist li').forEach(li => li.classList.add('done'));
+    logEv('All checklist items marked ✓', 'ev-ok');
+  }
+
+  // ── Click checklist items to toggle ──
+  document.querySelectorAll('.checklist li').forEach(li => {
+    li.style.cursor = 'pointer';
+    li.addEventListener('click', () => {
+      li.classList.toggle('done');
+      logEv(`Checklist: "${li.textContent.trim()}" ${li.classList.contains('done') ? '✓' : '○'}`, '');
+    });
+  });
+</script>
+</body>
+</html>
