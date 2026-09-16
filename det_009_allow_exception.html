@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadow AI Test — DET-009 | Allow Exception — No Detection</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --accent2:#7c5cfc; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --warn:#f59e0b; --fail:#ef4444; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }
+    header { border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+    .badge { font-family:var(--mono); font-size:11px; background:linear-gradient(135deg,#ef4444,#b91c1c); padding:3px 9px; border-radius:4px; color:#fff; }
+    header h1 { font-size:14px; font-weight:600; }
+    .tc-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }
+    main { display:grid; grid-template-columns:300px 1fr; }
+    aside { border-right:1px solid var(--border); padding:20px; display:flex; flex-direction:column; gap:16px; position:sticky; top:0; height:calc(100vh - 53px); overflow-y:auto; }
+    aside h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; }
+    .spec-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); gap:10px; }
+    .spec-row:last-child { border-bottom:none; }
+    .sk { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .sv { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
+    .sv.g{color:var(--pass);} .sv.b{color:var(--accent);} .sv.r{color:var(--fail);}
+    .callout { border-radius:8px; padding:12px; font-size:12px; line-height:1.6; }
+    .callout-warn { background:#1a1208; border:1px solid #5a3a00; color:var(--warn); }
+    .callout-fail { background:#1a0808; border:1px solid #5a1a1a; color:var(--fail); }
+    .callout strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    .precond-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .precond-row { display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.5; }
+    .precond-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+    .precond-dot.required { background:var(--fail); }
+    .precond-dot.ok { background:var(--pass); }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:140px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
+    .lp{color:var(--pass);} .lw{color:var(--warn);} .li{color:var(--accent);}
+    /* right panel */
+    .app-panel { display:flex; flex-direction:column; height:calc(100vh - 53px); background:#fff; }
+    .fake-bar { background:#f2f2f2; border-bottom:1px solid #d8d8d8; padding:7px 16px; display:flex; align-items:center; gap:10px; }
+    .dots { width:12px; height:12px; border-radius:50%; background:#fc6058; box-shadow:17px 0 0 #fec02f,34px 0 0 #2bc840; flex-shrink:0; }
+    .url-bar { flex:1; background:#fff; border:1px solid #d0d0d0; border-radius:5px; padding:3px 10px; font-family:var(--mono); font-size:11px; color:#666; margin-left:44px; }
+    .allow-badge { font-size:10px; background:#d97706; color:#fff; border-radius:3px; padding:2px 6px; font-weight:600; }
+    .app-body { flex:1; display:grid; grid-template-columns:180px 1fr; overflow:hidden; }
+    .app-nav { background:#f7f7f8; border-right:1px solid #e5e5e7; padding:16px 10px; display:flex; flex-direction:column; gap:4px; }
+    .nav-item { padding:7px 10px; border-radius:6px; font-size:13px; color:#555; }
+    .nav-item.active { background:#e8eeff; color:#1a73e8; font-weight:500; }
+    .app-content { padding:28px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
+    .allow-banner { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:10px; font-size:13px; color:#92400e; }
+    .card { background:#fff; border:1px solid #e5e5e7; border-radius:10px; padding:24px; }
+    .card-title { font-size:16px; font-weight:600; color:#1a1a1a; margin-bottom:8px; }
+    .card-body { font-size:13px; color:#555; line-height:1.7; margin-bottom:16px; }
+    .ai-input-wrap { border-top:1px solid #f0f0f0; padding-top:16px; }
+    .ai-label { font-size:11px; color:#888; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+    .ai-textarea { width:100%; border:1px solid #e5e5e7; border-radius:8px; padding:10px 12px; font-size:13px; font-family:var(--sans); color:#1a1a1a; resize:none; outline:none; min-height:72px; }
+    .ai-textarea::placeholder { color:#aaa; }
+    .ai-toolbar { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .sparkle-btn { display:flex; align-items:center; gap:4px; background:linear-gradient(135deg,#f0f4ff,#f5f0ff); border:1px solid #d0d8ff; border-radius:20px; padding:4px 10px; cursor:pointer; font-size:11px; color:#4f46e5; font-family:var(--sans); }
+    footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:20px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">SAI-DET-009 · NEGATIVE</div>
+  <h1>Allow Exception — AI Signal Present but No Shadow AI Log</h1>
+  <div class="tc-meta">Shadow AI Phase 1 · RC 4.10</div>
+</header>
+<main>
+  <aside>
+    <div>
+      <h2>Test Spec</h2>
+      <div class="spec-block" style="margin-top:8px">
+        <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-DET-009</span></div>
+        <div class="spec-row"><span class="sk">Type</span><span class="sv r">Negative</span></div>
+        <div class="spec-row"><span class="sk">Domain policy</span><span class="sv r">Allow (not Isolate)</span></div>
+        <div class="spec-row"><span class="sk">AI signals on page</span><span class="sv">Sparkle + placeholder</span></div>
+        <div class="spec-row"><span class="sk">Expected Tier 2</span><span class="sv r">NONE</span></div>
+        <div class="spec-row"><span class="sk">Expected Tier 3</span><span class="sv r">NONE</span></div>
+        <div class="spec-row"><span class="sk">Expected log</span><span class="sv">Tier 1 proxy only</span></div>
+      </div>
+    </div>
+    <div class="callout-fail">
+      <strong>⚠ Pre-condition — Admin Portal setup required</strong>
+      This domain must be configured with an <strong>Allow</strong> exception in Web Policy before running this test. Shadow AI requires Isolation — Allow bypasses the Surrogate Browser and the extension never runs.
+    </div>
+    <div>
+      <h2>Pre-conditions Checklist</h2>
+      <div class="precond-block" style="margin-top:8px">
+        <div class="precond-row">
+          <div class="precond-dot required"></div>
+          <span>Domain set to <strong>Allow</strong> in Web Policy exceptions (not Isolate)</span>
+        </div>
+        <div class="precond-row">
+          <div class="precond-dot required"></div>
+          <span>Shadow AI global toggle is <strong>ON</strong> for the tenant</span>
+        </div>
+        <div class="precond-row">
+          <div class="precond-dot required"></div>
+          <span>Page is accessed via the isolated browser session as usual</span>
+        </div>
+      </div>
+    </div>
+    <div class="callout-warn">
+      <strong>✓ Key assertion</strong>
+      Page has AI signals (sparkle + placeholder). Without Isolation, the extension does not run. Only a standard Tier 1 proxy log should appear — no Shadow AI tab in Event Details.
+    </div>
+    <div>
+      <h2>Page Event Log</h2>
+      <div id="status-log" style="margin-top:8px"><span class="li">» page loaded — AI signals present but domain is Allow</span></div>
+    </div>
+  </aside>
+
+  <div class="app-panel">
+    <div class="fake-bar">
+      <span class="dots"></span>
+      <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/det_009_allow_exception.html</div>
+      <span class="allow-badge">⚠ Allow Policy</span>
+    </div>
+    <div class="app-body">
+      <nav class="app-nav">
+        <div class="nav-item active">Home</div>
+        <div class="nav-item">Projects</div>
+        <div class="nav-item">Reports</div>
+      </nav>
+      <div class="app-content">
+        <div class="allow-banner">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          This domain has an <strong>Allow</strong> exception — Shadow AI detection is disabled. No Tier 2 or Tier 3 log should appear even though AI elements are present on the page.
+        </div>
+        <div class="card">
+          <div class="card-title">Workspace — Allow Policy Domain</div>
+          <div class="card-body">
+            This page contains AI signals identical to DET-001. The only difference is the domain policy. Because the domain action is Allow (not Isolate), the Surrogate Browser extension does not execute — no Shadow AI detection occurs.
+          </div>
+          <div class="ai-input-wrap">
+            <div class="ai-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#4f46e5"/></svg>
+              AI Assistant (signals present but should not be detected)
+            </div>
+            <!-- Same Signal C elements as DET-001 — but extension should NOT run -->
+            <textarea class="ai-textarea" placeholder="Ask AI..." rows="3"></textarea>
+            <div class="ai-toolbar">
+              <button class="sparkle-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="currentColor"/></svg>
+                Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>SAI-DET-009 · Negative · Allow exception</span>
+  <span>AI signals present but policy=Allow → extension does not run → no Tier 2 or Tier 3</span>
+  <span>Web Logs should show Tier 1 proxy log only — no Shadow AI tab in Event Details</span>
+</footer>
+<script>
+  const logEl = document.getElementById('status-log');
+  function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
+  appendLog('sparkle icon present: true', 'li');
+  appendLog('AI placeholder present: true', 'li');
+  appendLog('domain policy: Allow → extension must NOT run', 'lw');
+  appendLog('verify Web Logs: Tier 1 only, no Shadow AI tab', 'lw');
+</script>
+</body>
+</html>

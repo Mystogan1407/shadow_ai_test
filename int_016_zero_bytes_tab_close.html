@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shadow AI Test — INT-016 | Zero Bytes Tab Close — No Flush</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root { --bg:#0f1117; --surface:#181c27; --border:#2a2f42; --accent:#4f8ef7; --accent2:#7c5cfc; --text:#e2e6f0; --muted:#6b7290; --pass:#22c55e; --warn:#f59e0b; --fail:#ef4444; --mono:"JetBrains Mono","Fira Code","Courier New",monospace; --sans:"Inter",system-ui,sans-serif; }
+    body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; line-height:1.6; min-height:100vh; display:grid; grid-template-rows:auto 1fr auto; }
+    header { border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; gap:12px; }
+    .badge { font-family:var(--mono); font-size:11px; background:linear-gradient(135deg,#ef4444,#b91c1c); padding:3px 9px; border-radius:4px; color:#fff; }
+    header h1 { font-size:14px; font-weight:600; }
+    .tc-meta { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--muted); }
+    main { display:grid; grid-template-columns:300px 1fr; }
+    aside { border-right:1px solid var(--border); padding:20px; display:flex; flex-direction:column; gap:16px; position:sticky; top:0; height:calc(100vh - 53px); overflow-y:auto; }
+    aside h2 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+    .spec-block { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px; }
+    .spec-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); gap:10px; }
+    .spec-row:last-child { border-bottom:none; }
+    .sk { font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+    .sv { font-family:var(--mono); font-size:11px; color:var(--text); text-align:right; }
+    .sv.g{color:var(--pass);} .sv.b{color:var(--accent);} .sv.r{color:var(--fail);}
+    .callout { border-radius:8px; padding:12px; font-size:12px; line-height:1.6; }
+    .callout-warn { background:#1a1208; border:1px solid #5a3a00; color:var(--warn); }
+    .callout strong { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    .step-list { display:flex; flex-direction:column; gap:8px; }
+    .step { display:flex; gap:10px; align-items:flex-start; font-size:12px; line-height:1.5; }
+    .step-num { font-family:var(--mono); font-size:11px; background:var(--border); border-radius:4px; padding:2px 7px; flex-shrink:0; color:var(--muted); }
+    .step-num.done { background:var(--pass); color:#fff; }
+    .step-num.current { background:var(--accent); color:#fff; }
+    /* buffer monitor */
+    .buffer-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px; text-align:center; }
+    .buffer-num { font-family:var(--mono); font-size:36px; font-weight:700; color:var(--pass); line-height:1; }
+    .buffer-label { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; }
+    .buffer-status { font-family:var(--mono); font-size:11px; color:var(--pass); margin-top:6px; }
+    .buffer-status.dirty { color:var(--fail); }
+    /* interaction guard */
+    .guard-box { background:var(--surface); border:2px dashed var(--fail); border-radius:8px; padding:12px; }
+    .guard-title { font-size:12px; font-weight:600; color:var(--fail); margin-bottom:4px; }
+    .guard-count { font-family:var(--mono); font-size:20px; font-weight:700; color:var(--pass); }
+    .guard-count.dirty { color:var(--fail); }
+    .guard-sublabel { font-family:var(--mono); font-size:10px; color:var(--muted); }
+    #status-log { font-family:var(--mono); font-size:11px; line-height:1.7; max-height:130px; overflow-y:auto; background:var(--bg); border-radius:6px; padding:10px; border:1px solid var(--border); color:var(--muted); }
+    .lp{color:var(--pass);} .lw{color:var(--warn);} .li{color:var(--accent);}
+    /* right panel */
+    .app-panel { display:flex; flex-direction:column; height:calc(100vh - 53px); background:#fff; }
+    .fake-bar { background:#f2f2f2; border-bottom:1px solid #d8d8d8; padding:7px 16px; display:flex; align-items:center; gap:10px; }
+    .dots { width:12px; height:12px; border-radius:50%; background:#fc6058; box-shadow:17px 0 0 #fec02f,34px 0 0 #2bc840; flex-shrink:0; }
+    .url-bar { flex:1; background:#fff; border:1px solid #d0d0d0; border-radius:5px; padding:3px 10px; font-family:var(--mono); font-size:11px; color:#666; margin-left:44px; }
+    .iso-badge { font-size:10px; background:#1a73e8; color:#fff; border-radius:3px; padding:2px 6px; font-weight:600; }
+    .app-body { flex:1; display:grid; grid-template-columns:180px 1fr; overflow:hidden; }
+    .app-nav { background:#f7f7f8; border-right:1px solid #e5e5e7; padding:16px 10px; display:flex; flex-direction:column; gap:4px; }
+    .nav-item { padding:7px 10px; border-radius:6px; font-size:13px; color:#555; }
+    .nav-item.active { background:#e8eeff; color:#1a73e8; font-weight:500; }
+    .app-content { padding:28px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
+    .card { background:#fff; border:1px solid #e5e5e7; border-radius:10px; padding:24px; }
+    .card-title { font-size:16px; font-weight:600; color:#1a1a1a; margin-bottom:8px; }
+    .card-body { font-size:13px; color:#555; line-height:1.7; margin-bottom:16px; }
+    /* AI field — do not touch -->*/
+    .ai-field-wrap { border:2px dashed #fca5a5; border-radius:10px; padding:16px; background:#fff5f5; position:relative; }
+    .do-not-touch { position:absolute; top:-10px; left:12px; background:#fff5f5; padding:0 6px; font-size:11px; color:var(--fail); font-weight:600; font-family:var(--mono); }
+    .ai-label { font-size:11px; color:#888; margin-bottom:8px; display:flex; align-items:center; gap:5px; }
+    .ai-textarea { width:100%; border:1px solid #e5e5e7; border-radius:8px; padding:10px 12px; font-size:13px; font-family:var(--sans); color:#1a1a1a; resize:none; outline:none; min-height:72px; opacity:.6; }
+    .ai-textarea::placeholder { color:#aaa; }
+    .ai-textarea:focus { opacity:1; border-color:#fca5a5; }
+    .ai-toolbar { display:flex; align-items:center; gap:8px; margin-top:8px; }
+    .sparkle-btn { display:flex; align-items:center; gap:4px; background:linear-gradient(135deg,#f0f4ff,#f5f0ff); border:1px solid #d0d8ff; border-radius:20px; padding:4px 10px; cursor:pointer; font-size:11px; color:#4f46e5; font-family:var(--sans); }
+    footer { border-top:1px solid var(--border); padding:10px 24px; font-family:var(--mono); font-size:10px; color:var(--muted); display:flex; gap:20px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="badge">SAI-INT-016 · NEGATIVE</div>
+  <h1>Zero Bytes + Tab Close — No Session-End Tier 3</h1>
+  <div class="tc-meta">Shadow AI Phase 1 · RC 4.10</div>
+</header>
+<main>
+  <aside>
+    <div>
+      <h2>Test Spec</h2>
+      <div class="spec-block" style="margin-top:8px">
+        <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-INT-016</span></div>
+        <div class="spec-row"><span class="sk">Type</span><span class="sv r">Negative</span></div>
+        <div class="spec-row"><span class="sk">Interaction</span><span class="sv r">NONE</span></div>
+        <div class="spec-row"><span class="sk">Buffer bytes</span><span class="sv">0</span></div>
+        <div class="spec-row"><span class="sk">Trigger</span><span class="sv">Close tab</span></div>
+        <div class="spec-row"><span class="sk">Tier 2</span><span class="sv g">✓ expected on load</span></div>
+        <div class="spec-row"><span class="sk">Expected Tier 3</span><span class="sv r">NONE</span></div>
+        <div class="spec-row"><span class="sk">shadow_ai_bytes</span><span class="sv">0</span></div>
+      </div>
+    </div>
+    <div>
+      <h2>Buffer State</h2>
+      <div class="buffer-box" style="margin-top:8px">
+        <div class="buffer-num" id="buf-num">0</div>
+        <div class="buffer-label">bytes in buffer</div>
+        <div class="buffer-status" id="buf-status">clean — tab close must not flush Tier 3</div>
+      </div>
+    </div>
+    <div>
+      <h2>Interaction Guard</h2>
+      <div class="guard-box" style="margin-top:8px">
+        <div class="guard-title">⛔ Do not touch AI field</div>
+        <div style="text-align:center; margin:6px 0">
+          <div class="guard-count" id="gcount">0</div>
+          <div class="guard-sublabel">interaction events</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h2>Test Steps</h2>
+      <div class="step-list" style="margin-top:8px">
+        <div class="step"><span class="step-num done">1</span><span>Open page in isolated session ✓</span></div>
+        <div class="step"><span class="step-num done">2</span><span>Verify buffer = 0 bytes ✓</span></div>
+        <div class="step"><span class="step-num current">3</span><span>Close this tab without interacting</span></div>
+        <div class="step"><span class="step-num">4</span><span>Check Web Logs — Tier 2 only, no Tier 3</span></div>
+      </div>
+    </div>
+    <div class="callout-warn">
+      <strong>⚠ Key assertion</strong>
+      Tab close with 0-byte buffer must NOT produce a Tier 3 log. Complements OQ-5 fix (AI-766) and mirrors INT-015 but via tab close instead of navigate away.
+    </div>
+    <div>
+      <h2>Page Event Log</h2>
+      <div id="status-log" style="margin-top:8px"><span class="li">» page loaded — buffer is 0 bytes, do not interact</span></div>
+    </div>
+  </aside>
+
+  <div class="app-panel">
+    <div class="fake-bar">
+      <span class="dots"></span>
+      <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/int_016_zero_bytes_tab_close.html</div>
+      <span class="iso-badge">🔒 Isolated</span>
+    </div>
+    <div class="app-body">
+      <nav class="app-nav">
+        <div class="nav-item active">Documents</div>
+        <div class="nav-item">Templates</div>
+        <div class="nav-item">Settings</div>
+      </nav>
+      <div class="app-content">
+        <div class="card">
+          <div class="card-title">Session End — Zero Byte Buffer</div>
+          <div class="card-body">
+            The AI assistant below is present. Do NOT type, paste, or interact with it. Close this tab directly. The extension's session-end flush must not produce a Tier 3 log because the buffer is 0 bytes.
+          </div>
+          <div class="ai-field-wrap">
+            <div class="do-not-touch">⛔ DO NOT INTERACT</div>
+            <div class="ai-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#4f46e5"/></svg>
+              AI Assistant — do not interact
+            </div>
+            <textarea class="ai-textarea" id="ai-field"
+              placeholder="Ask AI..." rows="3"></textarea>
+            <div class="ai-toolbar">
+              <button class="sparkle-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="currentColor"/></svg>
+                Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer>
+  <span>SAI-INT-016 · Negative · Tab close</span>
+  <span>0 B buffer + tab close → Tier 3 must NOT fire · OQ-5 / AI-766</span>
+  <span>Compare with INT-005 (30 B + tab close → Tier 3 fires) and INT-015 (0 B + navigate → no Tier 3)</span>
+</footer>
+<script>
+  const logEl = document.getElementById('status-log');
+  const gcountEl = document.getElementById('gcount');
+  const bufNumEl = document.getElementById('buf-num');
+  const bufStatusEl = document.getElementById('buf-status');
+  let interactions = 0;
+
+  function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
+
+  function recordInteraction(type) {
+    interactions++;
+    gcountEl.textContent = interactions;
+    gcountEl.className = 'guard-count dirty';
+    bufNumEl.textContent = '?';
+    bufStatusEl.textContent = '⚠ interaction detected — test contaminated';
+    bufStatusEl.className = 'buffer-status dirty';
+    appendLog('⚠ ' + type + ' on AI field — buffer no longer 0, test invalid', 'lw');
+  }
+
+  const field = document.getElementById('ai-field');
+  field.addEventListener('input', () => recordInteraction('input'));
+  field.addEventListener('paste', () => recordInteraction('paste'));
+  field.addEventListener('keydown', e => {
+    if (!['Tab','Shift','Control','Alt','Meta','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      recordInteraction('keydown('+e.key+')');
+    }
+  });
+
+  appendLog('buffer confirmed 0 bytes', 'lp');
+  appendLog('do NOT interact — then close this tab', 'li');
+  appendLog('check Web Logs: Tier 2 only, no Tier 3', 'li');
+  appendLog('ref: INT-015 (navigate away, same assertion) · INT-005 (30B tab close → Tier 3 fires)', 'li');
+</script>
+</body>
+</html>
