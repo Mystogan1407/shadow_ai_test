@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAI-LOG-001 — Standard Page (Negative Control)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f4f4; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 300px; min-width: 300px; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; padding: 16px; gap: 12px; overflow-y: auto; font-size: 12px; }
+  .sidebar h2 { font-size: 13px; color: #64b5f6; border-bottom: 1px solid #333; padding-bottom: 8px; letter-spacing: 0.5px; }
+  .spec-block { background: #12122a; border-radius: 6px; padding: 10px; }
+  .spec-block h3 { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.8px; }
+  .spec-block p, .spec-block li { color: #ccc; line-height: 1.6; }
+  .spec-block ul { padding-left: 14px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+  .badge-tc   { background: #2d4a3e; color: #4caf82; }
+  .badge-tier { background: #1a3a5c; color: #64b5f6; }
+  .badge-neg  { background: #3a1a1a; color: #ef5350; }
+  .badge-edge { background: #2d2a10; color: #ffb74d; }
+  .selector-row { background: #0d0d1a; border-radius: 4px; padding: 5px 8px; margin-top: 3px; font-family: monospace; font-size: 11px; color: #a5d6a7; word-break: break-all; }
+  .selector-row.absent { color: #ef5350; }
+  .event-log { background: #0d0d1a; border-radius: 6px; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #888; min-height: 70px; max-height: 140px; }
+  .event-log .ok   { color: #4caf82; }
+  .event-log .warn { color: #ffb74d; }
+  .event-log .info { color: #64b5f6; }
+  .event-log .ts   { color: #555; margin-right: 4px; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 3px 0; color: #aaa; cursor: pointer; }
+  .checklist li::before { content: "○ "; color: #555; }
+  .checklist li.done::before { content: "✓ "; color: #4caf82; }
+  .checklist li.done { color: #4caf82; }
+  .checklist li.absent-check::before { content: "✗ "; color: #ef5350; }
+  .mark-btn { margin-top: 8px; background: #1a3a2e; border: none; color: #4caf82; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+  /* Fake browser bar */
+  .fake-bar { background: #2a2a2a; display: flex; align-items: center; gap: 10px; padding: 6px 12px; flex-shrink: 0; }
+  .dots { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1px #555, 16px 0 0 0 #555, 32px 0 0 0 #555; background: #ff5f56; flex-shrink: 0; }
+  .url-bar { flex: 1; background: #3a3a3a; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #bbb; font-family: monospace; }
+  .iso-badge { font-size: 10px; background: #1a3a1a; color: #4caf82; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+
+  /* Main panel */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .app-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; gap: 20px; background: #fff; overflow-y: auto; }
+  .app-card { width: 100%; max-width: 560px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .app-card h2 { font-size: 16px; color: #333; margin-bottom: 4px; }
+  .app-card p { font-size: 13px; color: #888; margin-bottom: 16px; }
+
+  /* AI input widget */
+  .ai-widget { border: 1px solid #d0d0d0; border-radius: 8px; overflow: hidden; }
+  .ai-widget-header { background: #f8f8f8; padding: 8px 12px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 6px; }
+  .ai-widget-header .sparkle { font-size: 14px; }
+  textarea.ai-input {
+    width: 100%; border: none; outline: none; padding: 12px;
+    font-size: 13px; color: #333; resize: none; font-family: inherit;
+    height: 80px; background: #fff;
+  }
+  .ai-widget-footer { display: flex; justify-content: flex-end; padding: 6px 10px; border-top: 1px solid #eee; background: #fafafa; gap: 8px; align-items: center; }
+
+  /* Sparkle button — Signal C */
+  .sparkle-btn { background: none; border: none; cursor: default; padding: 4px; border-radius: 4px; }
+  .sparkle-btn:hover { background: #f0f0f0; }
+
+  /* Trigger / helper buttons */
+  .trigger-btn { background: #1565c0; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .trigger-btn:hover { background: #0d47a1; }
+  .trigger-btn:disabled { background: #666; cursor: default; }
+  .trigger-btn.done-btn { background: #2e7d32; }
+
+  /* Byte gauge */
+  .gauge-wrap { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #888; }
+  .gauge-bar { height: 6px; border-radius: 3px; background: #e0e0e0; width: 120px; overflow: hidden; }
+  .gauge-fill { height: 100%; background: #ef5350; border-radius: 3px; transition: width 0.2s; }
+  .gauge-fill.over { background: #4caf82; }
+
+  /* File upload area */
+  .file-drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 16px; text-align: center; font-size: 12px; color: #aaa; margin-top: 10px; position: relative; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .file-drop-zone:hover { border-color: #1565c0; background: #f0f4ff; }
+  .file-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .file-status { margin-top: 8px; font-size: 11px; color: #4caf82; min-height: 16px; }
+
+  /* Step list */
+  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .steps li { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: #555; }
+  .step-num { background: #1565c0; color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-num.done-step { background: #2e7d32; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+
+  <h2>SAI-LOG-001 — Standard Page</h2>
+  <div class="spec-block">
+    <h3>Test Case</h3>
+    <span class="badge badge-neg">SAI-LOG-001</span>
+    <span class="badge badge-neg">Negative Control</span>
+    <p style="margin-top:6px;">Navigating this page must produce <b>zero</b> Shadow AI logs. No Tier 2, no Tier 3.</p>
+  </div>
+  <div class="spec-block">
+    <h3>Signal C — Absent (intentional)</h3>
+    <div class="selector-row absent">✗ No sparkle icon / aria-label="AI..."</div>
+    <div class="selector-row absent">✗ No placeholder "Ask AI..."</div>
+    <div class="selector-row absent">✗ No known AI element ID</div>
+    <div class="selector-row absent">✗ No contenteditable AI textbox</div>
+    <p style="margin-top:6px; color:#ef5350; font-size:11px;">Page contains a plain textarea with no AI signals.</p>
+  </div>
+  <div class="spec-block">
+    <h3>Expected Outcome</h3>
+    <ul>
+      <li>No shadow_ai log line in Druid</li>
+      <li>No "AI Presence Detected" in Web Logs</li>
+      <li>Event Type = "Page Request" (standard log only)</li>
+      <li>No Shadow AI tab in Event Details</li>
+    </ul>
+  </div>
+  <div class="spec-block">
+    <h3>Pre-conditions</h3>
+    <ul>
+      <li>Shadow AI global toggle ON</li>
+      <li>Domain category enabled in policy</li>
+      <li>Session isolated (Surrogate Browser)</li>
+    </ul>
+  </div>
+  <div class="spec-block">
+    <h3>Verification Checklist</h3>
+    <ul class="checklist" id="checklist">
+      <li>No shadow_ai log generated in Druid</li>
+      <li>Web Logs shows Event Type = "Page Request"</li>
+      <li>No Shadow AI tab in Event Details</li>
+      <li>shadow_ai field is NULL / absent</li>
+    </ul>
+    <button class="mark-btn" onclick="markAll()">✓ Mark All Done</button>
+  </div>
+  <div class="spec-block">
+    <h3>Event Log</h3>
+    <div class="event-log" id="eventLog"></div>
+  </div>
+</div>
+<div class="main">
+
+  <div class="fake-bar">
+    <span class="dots"></span>
+    <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/log_001_standard_page.html</div>
+    <span class="iso-badge">🔒 Isolated</span>
+  </div>
+  <div class="app-area">
+
+    <div class="app-card">
+      <h2>Standard Web Page (No AI)</h2>
+      <p>This is a plain page with no AI elements. The form below is a regular search field — no sparkle icons, no AI placeholder text, no known AI element IDs.</p>
+      <div style="border:1px solid #e0e0e0; border-radius:8px; padding:16px;">
+        <label style="font-size:13px; color:#555; display:block; margin-bottom:6px;">Search</label>
+        <input type="text" placeholder="Search documents..."
+          style="width:100%; border:1px solid #ccc; border-radius:6px; padding:8px 12px; font-size:13px; outline:none;">
+        <label style="font-size:13px; color:#555; display:block; margin:12px 0 6px;">Notes</label>
+        <textarea placeholder="Enter notes here..."
+          style="width:100%; border:1px solid #ccc; border-radius:6px; padding:8px 12px; font-size:13px; height:80px; resize:none; outline:none; font-family:inherit;"></textarea>
+        <button style="margin-top:10px; background:#555; color:#fff; border:none; border-radius:6px; padding:7px 16px; font-size:12px; cursor:default;">Submit</button>
+      </div>
+    </div>
+    <div class="app-card" style="background:#fff9f9; border-color:#ffcdd2;">
+      <h2 style="color:#c62828; font-size:13px;">⚠ Negative Control</h2>
+      <p>If any Shadow AI log appears for this page, it is a <b>false positive bug</b>. File immediately against the extension team.</p>
+    </div>
+  </div>
+</div>
+<script>
+
+  const _log = document.getElementById("eventLog");
+  function logEv(msg, cls="") {
+    const ts = new Date().toTimeString().slice(0,8);
+    _log.innerHTML += `<span class="ts">[${ts}]</span> <span class="${cls}">${msg}</span><br>`;
+    _log.scrollTop = _log.scrollHeight;
+  }
+  function markAll() {
+    document.querySelectorAll(".checklist li").forEach(li => li.classList.add("done"));
+    logEv("All checklist items marked ✓", "ok");
+  }
+  document.querySelectorAll(".checklist li").forEach(li => {
+    li.addEventListener("click", () => {
+      li.classList.toggle("done");
+    });
+  });
+
+
+  function _onLoad() {
+    logEv("Page loaded — NO Signal C elements present.", "warn");
+    logEv("Expected: zero shadow_ai logs.", "warn");
+    logEv("If Tier 2 fires → false positive bug.", "warn");
+  }
+window.addEventListener("DOMContentLoaded", () => { _onLoad(); });
+</script>
+</body>
+</html>

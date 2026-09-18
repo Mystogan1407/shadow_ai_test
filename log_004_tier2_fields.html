@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAI-LOG-004 — Tier 2 Field Verification</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f4f4f4; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar { width: 300px; min-width: 300px; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; padding: 16px; gap: 12px; overflow-y: auto; font-size: 12px; }
+  .sidebar h2 { font-size: 13px; color: #64b5f6; border-bottom: 1px solid #333; padding-bottom: 8px; letter-spacing: 0.5px; }
+  .spec-block { background: #12122a; border-radius: 6px; padding: 10px; }
+  .spec-block h3 { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.8px; }
+  .spec-block p, .spec-block li { color: #ccc; line-height: 1.6; }
+  .spec-block ul { padding-left: 14px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+  .badge-tc   { background: #2d4a3e; color: #4caf82; }
+  .badge-tier { background: #1a3a5c; color: #64b5f6; }
+  .badge-neg  { background: #3a1a1a; color: #ef5350; }
+  .badge-edge { background: #2d2a10; color: #ffb74d; }
+  .selector-row { background: #0d0d1a; border-radius: 4px; padding: 5px 8px; margin-top: 3px; font-family: monospace; font-size: 11px; color: #a5d6a7; word-break: break-all; }
+  .selector-row.absent { color: #ef5350; }
+  .event-log { background: #0d0d1a; border-radius: 6px; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #888; min-height: 70px; max-height: 140px; }
+  .event-log .ok   { color: #4caf82; }
+  .event-log .warn { color: #ffb74d; }
+  .event-log .info { color: #64b5f6; }
+  .event-log .ts   { color: #555; margin-right: 4px; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 3px 0; color: #aaa; cursor: pointer; }
+  .checklist li::before { content: "○ "; color: #555; }
+  .checklist li.done::before { content: "✓ "; color: #4caf82; }
+  .checklist li.done { color: #4caf82; }
+  .checklist li.absent-check::before { content: "✗ "; color: #ef5350; }
+  .mark-btn { margin-top: 8px; background: #1a3a2e; border: none; color: #4caf82; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
+  /* Fake browser bar */
+  .fake-bar { background: #2a2a2a; display: flex; align-items: center; gap: 10px; padding: 6px 12px; flex-shrink: 0; }
+  .dots { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 1px #555, 16px 0 0 0 #555, 32px 0 0 0 #555; background: #ff5f56; flex-shrink: 0; }
+  .url-bar { flex: 1; background: #3a3a3a; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #bbb; font-family: monospace; }
+  .iso-badge { font-size: 10px; background: #1a3a1a; color: #4caf82; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+
+  /* Main panel */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .app-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; gap: 20px; background: #fff; overflow-y: auto; }
+  .app-card { width: 100%; max-width: 560px; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .app-card h2 { font-size: 16px; color: #333; margin-bottom: 4px; }
+  .app-card p { font-size: 13px; color: #888; margin-bottom: 16px; }
+
+  /* AI input widget */
+  .ai-widget { border: 1px solid #d0d0d0; border-radius: 8px; overflow: hidden; }
+  .ai-widget-header { background: #f8f8f8; padding: 8px 12px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 6px; }
+  .ai-widget-header .sparkle { font-size: 14px; }
+  textarea.ai-input {
+    width: 100%; border: none; outline: none; padding: 12px;
+    font-size: 13px; color: #333; resize: none; font-family: inherit;
+    height: 80px; background: #fff;
+  }
+  .ai-widget-footer { display: flex; justify-content: flex-end; padding: 6px 10px; border-top: 1px solid #eee; background: #fafafa; gap: 8px; align-items: center; }
+
+  /* Sparkle button — Signal C */
+  .sparkle-btn { background: none; border: none; cursor: default; padding: 4px; border-radius: 4px; }
+  .sparkle-btn:hover { background: #f0f0f0; }
+
+  /* Trigger / helper buttons */
+  .trigger-btn { background: #1565c0; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .trigger-btn:hover { background: #0d47a1; }
+  .trigger-btn:disabled { background: #666; cursor: default; }
+  .trigger-btn.done-btn { background: #2e7d32; }
+
+  /* Byte gauge */
+  .gauge-wrap { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #888; }
+  .gauge-bar { height: 6px; border-radius: 3px; background: #e0e0e0; width: 120px; overflow: hidden; }
+  .gauge-fill { height: 100%; background: #ef5350; border-radius: 3px; transition: width 0.2s; }
+  .gauge-fill.over { background: #4caf82; }
+
+  /* File upload area */
+  .file-drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 16px; text-align: center; font-size: 12px; color: #aaa; margin-top: 10px; position: relative; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  .file-drop-zone:hover { border-color: #1565c0; background: #f0f4ff; }
+  .file-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .file-status { margin-top: 8px; font-size: 11px; color: #4caf82; min-height: 16px; }
+
+  /* Step list */
+  .steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .steps li { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: #555; }
+  .step-num { background: #1565c0; color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-num.done-step { background: #2e7d32; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+
+  <h2>SAI-LOG-004 — Tier 2 Fields</h2>
+  <div class="spec-block">
+    <h3>Test Case</h3>
+    <span class="badge badge-tc">SAI-LOG-004</span>
+    <span class="badge badge-tier">Tier 2 only</span>
+    <p style="margin-top:6px;">Verify the Shadow AI tab for a Tier 2 entry shows only the correct subset of fields — no interaction fields.</p>
+  </div>
+  <div class="spec-block">
+    <h3>Fields PRESENT (Tier 2)</h3>
+    <div class="selector-row">✓ Shadow AI Name</div>
+    <div class="selector-row">✓ Detection Signal</div>
+    <div class="selector-row">✓ Related Log Events link</div>
+  </div>
+  <div class="spec-block">
+    <h3>Fields ABSENT (Tier 2)</h3>
+    <div class="selector-row absent">✗ Interaction Type</div>
+    <div class="selector-row absent">✗ Interaction Details</div>
+    <div class="selector-row absent">✗ Input Volume</div>
+    <div class="selector-row absent">✗ Shadow AI Tier (number)</div>
+    <p style="margin-top:6px; color:#aaa; font-size:11px;">Per Figma Default-2: Tier 2 panel intentionally omits interaction fields.</p>
+  </div>
+  <div class="spec-block">
+    <h3>Pre-conditions</h3>
+    <ul>
+      <li>Shadow AI global toggle ON</li>
+      <li>Domain category enabled, action = Isolate</li>
+      <li>Do NOT interact with textarea</li>
+    </ul>
+  </div>
+  <div class="spec-block">
+    <h3>Verification Checklist</h3>
+    <ul class="checklist">
+      <li>Tier 2 log generated</li>
+      <li>Shadow AI tab visible in Event Details</li>
+      <li>Shadow AI Name shown ✓</li>
+      <li>Detection Signal shown ✓</li>
+      <li>Related Log Events link shown ✓</li>
+      <li class="absent-check">Interaction Type NOT shown</li>
+      <li class="absent-check">Interaction Details NOT shown</li>
+      <li class="absent-check">Input Volume NOT shown</li>
+    </ul>
+    <button class="mark-btn" onclick="markAll()">✓ Mark All Done</button>
+  </div>
+  <div class="spec-block">
+    <h3>Event Log</h3>
+    <div class="event-log" id="eventLog"></div>
+  </div>
+</div>
+<div class="main">
+
+  <div class="fake-bar">
+    <span class="dots"></span>
+    <div class="url-bar">test-pages.menlotest.com/automation/shadow_ai/log_004_tier2_fields.html</div>
+    <span class="iso-badge">🔒 Isolated</span>
+  </div>
+  <div class="app-area">
+
+    <div class="app-card">
+      <h2>AI Assistant</h2>
+      <p>Simulated AI interface for SAI-LOG-004 — Signal C elements present on load.</p>
+      <div class="ai-widget">
+        <div class="ai-widget-header">
+          <!-- sparkle button: Signal C heuristic -->
+          <button class="sparkle-btn" aria-label="AI sparkle tools" title="AI tools">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill="#9c27b0"/>
+            </svg>
+          </button>
+          <span>AI Assistant</span>
+        </div>
+        <textarea
+          class="ai-input"
+          id="aiInput"
+          role="textbox"
+          aria-label="Ask AI — ask anything"
+          placeholder="Ask AI..."
+        ></textarea>
+        <div class="ai-widget-footer">
+          
+          <button style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+
+  const _log = document.getElementById("eventLog");
+  function logEv(msg, cls="") {
+    const ts = new Date().toTimeString().slice(0,8);
+    _log.innerHTML += `<span class="ts">[${ts}]</span> <span class="${cls}">${msg}</span><br>`;
+    _log.scrollTop = _log.scrollHeight;
+  }
+  function markAll() {
+    document.querySelectorAll(".checklist li").forEach(li => li.classList.add("done"));
+    logEv("All checklist items marked ✓", "ok");
+  }
+  document.querySelectorAll(".checklist li").forEach(li => {
+    li.addEventListener("click", () => {
+      li.classList.toggle("done");
+    });
+  });
+
+
+  function _onLoad() {
+    logEv("Signal C elements present — Tier 2 should fire.", "ok");
+    logEv("Do NOT interact — this is a Tier 2 fields check.", "warn");
+    logEv("After log appears: verify absent fields in Shadow AI tab.", "info");
+  }
+window.addEventListener("DOMContentLoaded", () => { _onLoad(); });
+</script>
+</body>
+</html>
