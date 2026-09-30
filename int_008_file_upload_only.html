@@ -48,21 +48,17 @@
     #ai-prompt { width:100%; background:transparent; border:none; outline:none; color:#1a1a1a; font-family:var(--sans); font-size:15px; line-height:1.55; padding:14px 16px 8px; resize:none; min-height:54px; border-radius:16px 16px 0 0; display:block; }
     #ai-prompt::placeholder { color:#8e8e93; }
 
-    /* drop zone: standalone div OUTSIDE duck-box overflow, using same pattern as INT-007 */
-    .drop-zone {
-      border-top:1.5px dashed #e5e5e7;
-      padding:14px 16px;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      font-size:13px; color:#8e8e93; cursor:pointer;
-      transition:all .15s;
-      position:relative; /* file input absolute inside here */
+    /* duck.ai exact pattern: button triggers hidden input with name="upload" */
+    .attach-wrap { border-top:1px solid #f0f0f0; padding:8px 14px; }
+    .attach-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      background:transparent; border:1px solid #e5e5e7;
+      border-radius:20px; padding:5px 12px;
+      cursor:pointer; font-size:13px; color:#555;
+      font-family:var(--sans); transition:background .12s;
     }
-    .drop-zone:hover, .drop-zone.drag-over { background:#f7f7f8; color:#1a1a1a; }
-    .drop-zone.has-file { background:#f0fdf4; color:#166534; border-color:#22c55e; }
-    /* file input fills the entire drop-zone — same as INT-007 pattern */
-    .drop-zone input[type=file] {
-      position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
-    }
+    .attach-btn:hover { background:#f7f7f8; }
+    .attach-btn.has-file { border-color:#22c55e; color:#166534; background:#f0fdf4; }
 
     .duck-toolbar { display:flex; align-items:center; padding:8px 12px 12px; gap:6px; border-top:1px solid #f0f0f0; }
     .tool-btn { display:flex; align-items:center; gap:5px; background:transparent; border:1px solid #e5e5e7; border-radius:20px; padding:5px 12px 5px 8px; cursor:pointer; font-size:13px; color:#1a1a1a; font-family:var(--sans); transition:background .12s; }
@@ -129,11 +125,19 @@
           placeholder="Ask anything privately"
           rows="2"></textarea>
 
-        <!-- Drop zone: standalone div, file input absolute inside — same as INT-007 -->
-        <div class="drop-zone" id="drop-zone">
-          <input type="file" id="file-input"/>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-          <span id="drop-label">Attach file — drop here or click to browse</span>
+        <!-- Exact duck.ai pattern: button + hidden input with name="upload" -->
+        <div class="attach-wrap" id="drop-zone">
+          <button type="button"
+            class="attach-btn"
+            data-testid="duckai-attach-button"
+            aria-label="Add images or PDFs"
+            onclick="document.getElementById('file-input').click()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            <span id="drop-label">Add images or PDFs</span>
+          </button>
+          <input type="file" name="upload" id="file-input"
+            accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf"
+            multiple hidden/>
         </div>
 
         <div class="duck-toolbar">
@@ -157,15 +161,28 @@
   <span>FR-L3: file content must NOT appear in logs</span>
 </footer>
 <script>
+
+  // Wake-up: synthetic input + focus event so extension enters tracking mode
+  // before user drops a file. Empty value = 0 bytes added to buffer.
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      const el = document.getElementById('ai-prompt');
+      if (el) {
+        el.dispatchEvent(new Event('focus', { bubbles: true }));
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true }));
+      }
+    }, 800);
+  });
+
   const logEl = document.getElementById('status-log');
-  const dropZone = document.getElementById('drop-zone');
+  const attachBtn = document.querySelector('.attach-btn');
   const askBtn = document.getElementById('ask-btn');
   function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
   function formatBytes(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
 
   function handleFile(file) {
     if (!file) return;
-    dropZone.classList.add('has-file');
+    attachBtn.classList.add('has-file');
     document.getElementById('drop-label').textContent = '✓ '+file.name+' ('+formatBytes(file.size)+')';
     askBtn.className = 'ask-btn on';
     appendLog('file: '+file.name+' ('+formatBytes(file.size)+')', 'lp');
@@ -173,14 +190,7 @@
     else appendLog('⚠ file < 32 B — threshold not crossed', 'lw');
   }
 
-  // drag-and-drop on the drop-zone div itself (same as INT-007)
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault(); dropZone.classList.remove('drag-over');
-    handleFile(e.dataTransfer?.files[0]);
-  });
-  // file input onchange (click-to-browse path)
+  // button click → hidden input (exact duck.ai pattern)
   document.getElementById('file-input').addEventListener('change', e => handleFile(e.target.files[0]));
 
   document.getElementById('ai-prompt').addEventListener('paste', () => appendLog('⚠ PASTE detected — this case is file-only', 'lw'));
