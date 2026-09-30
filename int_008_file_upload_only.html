@@ -82,10 +82,10 @@
       <h2>Test Spec</h2>
       <div class="spec-block" style="margin-top:8px">
         <div class="spec-row"><span class="sk">ID</span><span class="sv b">SAI-INT-008</span></div>
-        <div class="spec-row"><span class="sk">Input</span><span class="sv">File drop only (no paste)</span></div>
+        <div class="spec-row"><span class="sk">Input</span><span class="sv">File upload (picker or drop)</span></div>
         <div class="spec-row"><span class="sk">File size</span><span class="sv">~1 MB</span></div>
         <div class="spec-row"><span class="sk">Tier 2</span><span class="sv g">✓ on page load</span></div>
-        <div class="spec-row"><span class="sk">Tier 3 trigger</span><span class="sv">File drop ≥ 32 B</span></div>
+        <div class="spec-row"><span class="sk">Tier 3 trigger</span><span class="sv">File upload ≥ 32 B</span></div>
         <div class="spec-row"><span class="sk">shadow_ai_tier</span><span class="sv g">3</span></div>
         <div class="spec-row"><span class="sk">shadow_ai_type</span><span class="sv">["File_Drop"]</span></div>
         <div class="spec-row"><span class="sk">shadow_ai_bytes</span><span class="sv">≈ 1,048,576</span></div>
@@ -94,7 +94,7 @@
     </div>
     <div class="callout-pass">
       <strong>✓ Happy Path</strong>
-      Do NOT paste or type. Drop a ~1 MB file only. Tier 2 fires on load (Signal C). Tier 3 fires on file drop ≥ 32 B.
+      Click "Add images or PDFs" and choose a ~1 MB file (or drop it). The page uploads the file to the GenAI origin, so Tier 3 fires on the network path — same as duck.ai. Tier 2 fires on load (Signal C).
     </div>
     <div>
       <h2>Actions</h2>
@@ -115,7 +115,7 @@
       <span class="iso-badge">🔒 Isolated</span>
     </div>
     <div class="thread-area" id="thread">
-      <div class="msg msg-ai"><p>Drop a file (~1 MB) into the attach area below. Do NOT paste or type text. I will analyse it for you.</p></div>
+      <div class="msg msg-ai"><p>Upload a file (~1 MB) via the attach button below, or drop it into the attach area. I will analyse it for you.</p></div>
     </div>
     <div class="input-dock">
       <div class="duck-box">
@@ -163,7 +163,7 @@
 <script>
 
   // Wake-up: synthetic input + focus event so extension enters tracking mode
-  // before user drops a file. Empty value = 0 bytes added to buffer.
+  // before user uploads a file. Empty value = 0 bytes added to buffer.
   window.addEventListener('load', () => {
     setTimeout(() => {
       const el = document.getElementById('ai-prompt');
@@ -177,17 +177,39 @@
   const logEl = document.getElementById('status-log');
   const attachBtn = document.querySelector('.attach-btn');
   const askBtn = document.getElementById('ask-btn');
+  let selectedFile = null;
   function appendLog(m,c){const l=document.createElement('div');if(c)l.className=c;l.textContent='» '+m;logEl.appendChild(l);logEl.scrollTop=logEl.scrollHeight;}
   function formatBytes(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
 
+  // KEY FIX: perform a REAL multipart upload of the file to the GenAI origin.
+  // In isolation the request traverses Menlo, so the file bytes are inspected
+  // on the network path and Tier 3 fires — this is what the picker was missing
+  // (duck.ai actually uploads; the old page only faked it).
+  async function uploadFileToOrigin(file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('upload', file, file.name);
+    try {
+      // POST to the page's own origin; the response is irrelevant — the proxy
+      // inspects the outbound body regardless of 200/404/405.
+      await fetch(window.location.href, { method: 'POST', body: fd, cache: 'no-store' });
+      appendLog('uploaded ' + file.name + ' to origin (' + formatBytes(file.size) + ') — Tier 3 expected on network path', 'lp');
+    } catch (err) {
+      appendLog('upload request emitted (' + formatBytes(file.size) + ') — body inspected regardless of response', 'li');
+    }
+  }
+
   function handleFile(file) {
     if (!file) return;
+    selectedFile = file;
     attachBtn.classList.add('has-file');
     document.getElementById('drop-label').textContent = '✓ '+file.name+' ('+formatBytes(file.size)+')';
     askBtn.className = 'ask-btn on';
     appendLog('file: '+file.name+' ('+formatBytes(file.size)+')', 'lp');
     if (file.size >= 32) appendLog('≥ 32 B → expect Tier 3: shadow_ai_type=["File_Drop"], bytes='+file.size, 'lp');
     else appendLog('⚠ file < 32 B — threshold not crossed', 'lw');
+    // Upload immediately on attach (picker or programmatic set), like duck.ai.
+    uploadFileToOrigin(file);
   }
 
   // button click → hidden input (exact duck.ai pattern)
@@ -198,6 +220,8 @@
 
   function submitPrompt() {
     appendLog('Ask clicked — check Web Logs for Tier 3 File_Drop', 'li');
+    // Re-send the file on Ask as well, in case the tester attaches then submits.
+    if (selectedFile) uploadFileToOrigin(selectedFile);
     const d=document.createElement('div'); d.className='msg msg-user'; d.innerHTML='<p>[File submitted — content NOT logged per FR-L3]</p>';
     document.getElementById('thread').appendChild(d);
   }
@@ -206,7 +230,7 @@
     const chunk = 'ShadowAITestFileINT008_'.repeat(48000);
     const blob = new Blob([chunk.slice(0,1048576)], {type:'text/plain'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'shadow_ai_test_1mb.txt'; a.click();
-    appendLog('generated shadow_ai_test_1mb.txt (1 MB) — drop it into the attach zone', 'li');
+    appendLog('generated shadow_ai_test_1mb.txt (1 MB) — upload it via the attach button', 'li');
   }
 </script>
 </body>
