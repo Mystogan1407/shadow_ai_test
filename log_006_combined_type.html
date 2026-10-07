@@ -104,15 +104,14 @@
     <p style="margin-top:4px; color:#aaa; font-size:11px;">Exact order may vary. All three must be present as array.</p>
   </div>
   <div class="spec-block">
-    <h3>Steps (in order)</h3>
+    <h3>Steps (auto)</h3>
     <ul>
       <li>1. Load → Tier 2 fires</li>
-      <li>2. Click "Copy 35B payload" → paste into textarea</li>
-      <li>3. Type ≥1 char into textarea</li>
-      <li>4. Upload a file via the file picker below</li>
-      <li>5. Navigate away → session-end Tier 3 fires with combined type</li>
+      <li>2. After 2s → auto-paste 35B + auto-type</li>
+      <li>3. Selenium: send_keys(filepath) to #combinedFileInput</li>
+      <li>4. Selenium: navigate away → Tier 3 fires with combined type</li>
     </ul>
-    <p style="margin-top:6px; color:#ffb74d; font-size:11px;">Selenium: use send_keys(filepath) on #combinedFileInput directly.</p>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Paste + typing auto. File upload via Selenium send_keys only.</p>
   </div>
   <div class="spec-block">
     <h3>Verification Checklist</h3>
@@ -144,7 +143,7 @@
       <p>Follow the 5 steps in order to produce a combined Interaction Type log.</p>
       <ul class="steps">
         <li><span class="step-num" id="s1">1</span><span>Load page — Tier 2 should fire automatically</span></li>
-        <li><span class="step-num" id="s2">2</span><span>Click "Copy 35B payload" then paste into AI textarea below (Ctrl+V)</span></li>
+        <li><span class="step-num" id="s2">2</span><span>Auto-paste 35B + auto-type (fires 2s after load)</span></li>
         <li><span class="step-num" id="s3">3</span><span>Type at least 1 character into the AI textarea</span></li>
         <li><span class="step-num" id="s4">4</span><span>Upload a file using the file picker below</span></li>
         <li><span class="step-num" id="s5">5</span><span>Navigate to any other page — session-end Tier 3 fires with combined type</span></li>
@@ -162,9 +161,7 @@
         <textarea class="ai-input" id="aiInput" role="textbox"
           aria-label="Ask AI — ask anything"
           placeholder="Ask AI..."></textarea>
-        <div class="ai-widget-footer">
-          <button class="trigger-btn" id="copyBtn" onclick="copyPayload()">📋 Copy 35B payload</button>
-        </div>
+        <div class="ai-widget-footer"></div>
       </div>
 
       <!-- File upload — visible input for Selenium send_keys() -->
@@ -215,42 +212,37 @@
     logEv("Signal C elements present — Tier 2 should fire.", "ok");
     document.getElementById("s1").classList.add("done-step");
     logEv("Step 1 ✓ Page loaded.", "ok");
-    logEv("Step 2: Copy payload → paste into textarea.", "info");
-  }
+    logEv("Auto-paste + auto-type in 2s...", "info");
 
-  function byteLen(s) { return new TextEncoder().encode(s).length; }
-  async function copyPayload() {
-    const unit = "ShadowAITestPayload_";
-    let s = "";
-    while (byteLen(s) < 35) s += unit;
-    s = s.slice(0, 35);
-    try {
-      await navigator.clipboard.writeText(s);
-      document.getElementById("copyBtn").textContent = "✓ Copied — paste now (Ctrl+V)";
-      document.getElementById("copyBtn").classList.add("done-btn");
-      logEv("35B payload copied ✓", "ok");
-    } catch(e) { logEv("Clipboard error: " + e.message, "warn"); }
-  }
+    setTimeout(() => {
+      const ta = document.getElementById("aiInput");
+      const payload = "ShadowAITestPayload_".repeat(2).slice(0, 35);
 
-  const ta = document.getElementById("aiInput");
+      // Auto-paste
+      try {
+        const dt = new DataTransfer();
+        dt.setData("text/plain", payload);
+        ta.focus();
+        ta.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+      } catch(e) {}
+      ta.value = payload;
+      ta.dispatchEvent(new Event("input", { bubbles: true }));
 
-  ta.addEventListener("paste", () => {
-    if (!stepsDone.paste) {
       stepsDone.paste = true;
       document.getElementById("s2").classList.add("done-step");
-      logEv("Step 2 ✓ Paste detected.", "ok");
-      logEv("Step 3: Now type at least 1 character.", "info");
-    }
-  });
+      logEv("Step 2 ✓ Auto-paste 35B triggered.", "ok");
 
-  ta.addEventListener("input", () => {
-    if (stepsDone.paste && !stepsDone.typed && ta.value.length > 0) {
-      stepsDone.typed = true;
-      document.getElementById("s3").classList.add("done-step");
-      logEv("Step 3 ✓ Typing detected.", "ok");
-      logEv("Step 4: Upload a file using the picker.", "info");
-    }
-  });
+      // Auto-type: append 1 char
+      setTimeout(() => {
+        ta.value += "X";
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        stepsDone.typed = true;
+        document.getElementById("s3").classList.add("done-step");
+        logEv("Step 3 ✓ Auto-type triggered.", "ok");
+        logEv("Step 4: Selenium send_keys(filepath) to #combinedFileInput.", "info");
+      }, 300);
+    }, 2000);
+  }
 
   document.getElementById("combinedFileInput").addEventListener("change", (e) => {
     const files = e.target.files;
@@ -260,8 +252,8 @@
       const f = files[0];
       document.getElementById("fileStatus").textContent =
         "✓ File selected: " + f.name + " (" + f.size + " bytes)";
-      logEv("Step 4 ✓ File selected: " + f.name + " (" + f.size + "B).", "ok");
-      logEv("Step 5: Navigate away → session-end Tier 3 fires.", "info");
+      logEv("Step 4 ✓ File: " + f.name + " (" + f.size + "B).", "ok");
+      logEv("Step 5: Selenium navigate away → session-end Tier 3 fires.", "info");
       document.getElementById("s5").style.fontWeight = "600";
     }
   });
