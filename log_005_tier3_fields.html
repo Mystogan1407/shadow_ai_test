@@ -110,14 +110,13 @@
     <p style="margin-top:6px; color:#aaa; font-size:11px;">Input Volume format: comma-separated byte count e.g. "4,056 bytes" — NOT KB/MB.</p>
   </div>
   <div class="spec-block">
-    <h3>Steps</h3>
+    <h3>Steps (auto)</h3>
     <ul>
       <li>1. Load page → Tier 2 fires</li>
-      <li>2. Click "Copy 35B payload"</li>
-      <li>3. Paste into AI textarea → Tier 3 fires</li>
-      <li>4. Open log in Admin Portal → Shadow AI tab</li>
-      <li>5. Verify all 7 fields present</li>
+      <li>2. After 2s → auto-paste 35B → Tier 3 fires</li>
+      <li>3. Open log → Shadow AI tab → verify all 7 fields</li>
     </ul>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Fully automated — just load and wait.</p>
   </div>
   <div class="spec-block">
     <h3>Verification Checklist</h3>
@@ -170,7 +169,7 @@
         ></textarea>
         <div class="ai-widget-footer">
           
-          <button class="trigger-btn" id="copyBtn" onclick="copyPayload()">📋 Copy 35B payload</button>
+
           <button style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">Send</button>
         </div>
       </div>
@@ -198,8 +197,28 @@
 
   function _onLoad() {
     logEv("Signal C elements present — Tier 2 should fire.", "ok");
-    logEv("Step: Copy payload → paste into textarea → Tier 3.", "info");
+    logEv("Auto-paste in 2s → Tier 3 will fire automatically.", "info");
   }
+  // Auto-trigger Tier 3 after 2s (Tier 2 scan completes first)
+  setTimeout(() => {
+    const ta = document.getElementById("aiInput");
+    const payload = "ShadowAITestPayload_".repeat(2).slice(0, 35);
+
+    // Primary: dispatch paste event with DataTransfer
+    try {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", payload);
+      ta.focus();
+      ta.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+    } catch(e) {}
+
+    // Fallback: set value + input event
+    ta.value = payload;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+
+    logEv("Auto-paste triggered (" + payload.length + "B) — Tier 3 should fire.", "ok");
+  }, 2000);
+
   function byteLen(s) { return new TextEncoder().encode(s).length; }
   async function copyPayload() {
     const unit = "ShadowAITestPayload_";

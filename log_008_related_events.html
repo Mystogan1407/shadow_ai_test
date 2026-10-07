@@ -99,14 +99,15 @@
     <p style="margin-top:6px;">Same page load produces both Tier 2 and Tier 3 with the same session_id. "View Related Log Events" link must filter to show both.</p>
   </div>
   <div class="spec-block">
-    <h3>Steps</h3>
+    <h3>Steps (auto)</h3>
     <ul>
       <li>1. Load page → Tier 2 fires</li>
-      <li>2. Copy 35B payload → paste → Tier 3 fires</li>
+      <li>2. After 2s → auto-paste → Tier 3 fires</li>
       <li>3. In Admin Portal, open either log entry</li>
       <li>4. Click "View Related Log Events"</li>
-      <li>5. Verify table shows exactly 2 entries (Tier 2 + Tier 3)</li>
+      <li>5. Verify table shows exactly 2 entries</li>
     </ul>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Auto-trigger — no manual paste needed.</p>
   </div>
   <div class="spec-block">
     <h3>Expected Outcome</h3>
@@ -170,7 +171,7 @@
         ></textarea>
         <div class="ai-widget-footer">
           
-          <button class="trigger-btn" id="copyBtn" onclick="copyPayload()">📋 Copy 35B payload</button>
+
           <button style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">Send</button>
         </div>
       </div>
@@ -199,8 +200,28 @@
   function _onLoad() {
     logEv("Signal C present — Tier 2 should fire.", "ok");
     logEv("This page generates BOTH Tier 2 and Tier 3 in same session.", "info");
-    logEv("Step: Copy payload → paste → both logs share session_id.", "info");
+    logEv("Auto-paste in 2s → Tier 3 fires. Both share session_id.", "info");
   }
+  // Auto-trigger Tier 3 after 2s (Tier 2 scan completes first)
+  setTimeout(() => {
+    const ta = document.getElementById("aiInput");
+    const payload = "ShadowAITestPayload_".repeat(2).slice(0, 35);
+
+    // Primary: dispatch paste event with DataTransfer
+    try {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", payload);
+      ta.focus();
+      ta.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+    } catch(e) {}
+
+    // Fallback: set value + input event
+    ta.value = payload;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+
+    logEv("Auto-paste triggered (" + payload.length + "B) — Tier 3 should fire.", "ok");
+  }, 2000);
+
   function byteLen(s) { return new TextEncoder().encode(s).length; }
   async function copyPayload() {
     const unit = "ShadowAITestPayload_";

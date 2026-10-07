@@ -99,14 +99,13 @@
     <p style="margin-top:6px;">Load page (Tier 2) → paste ≥32 bytes → Tier 3 fires.</p>
   </div>
   <div class="spec-block">
-    <h3>Steps</h3>
+    <h3>Steps (auto)</h3>
     <ul>
       <li>1. Load page → Tier 2 fires</li>
-      <li>2. Click "Copy 35B payload" → payload in clipboard</li>
-      <li>3. Click into AI textarea</li>
-      <li>4. Paste (Ctrl+V / Cmd+V)</li>
-      <li>5. Tier 3 fires on paste threshold</li>
+      <li>2. After 2s → auto-paste 35B → Tier 3 fires</li>
+      <li>3. No manual interaction needed</li>
     </ul>
+    <p style="margin-top:6px; color:#4caf82; font-size:11px;">✓ Fully automated — just load and wait.</p>
   </div>
   <div class="spec-block">
     <h3>Expected Druid Fields</h3>
@@ -163,7 +162,7 @@
         ></textarea>
         <div class="ai-widget-footer">
           
-          <button class="trigger-btn" id="copyBtn" onclick="copyPayload()">📋 Copy 35B payload</button>
+
           <button style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer;">Send</button>
         </div>
       </div>
@@ -191,33 +190,24 @@
 
   function _onLoad() {
     logEv("Signal C elements present — Tier 2 should fire.", "ok");
-    logEv("Step 1: Click \"Copy 35B payload\" button.", "info");
-    logEv("Step 2: Paste into the AI textarea (Ctrl+V).", "info");
+    logEv("Auto-paste in 2s → Tier 3 will fire automatically.", "info");
   }
-  function byteLen(s) { return new TextEncoder().encode(s).length; }
-  async function copyPayload() {
-    const unit = "ShadowAITestPayload_";
-    let s = "";
-    while (byteLen(s) < 35) s += unit;
-    s = s.slice(0, 35);
+  // Auto-trigger Tier 3 after 2s
+  setTimeout(() => {
+    const ta = document.getElementById("aiInput");
+    const payload = "ShadowAITestPayload_".repeat(2).slice(0, 35);
     try {
-      await navigator.clipboard.writeText(s);
-      document.getElementById("copyBtn").textContent = "✓ Copied! Now paste into textarea";
-      document.getElementById("copyBtn").classList.add("done-btn");
-      logEv("35B payload copied to clipboard ✓", "ok");
-      logEv("Now click the textarea and Ctrl+V / Cmd+V.", "info");
-    } catch(e) {
-      logEv("Clipboard error: " + e.message, "warn");
-    }
-  }
-  let pasted = false;
-  document.getElementById("aiInput").addEventListener("paste", () => {
-    if (!pasted) {
-      pasted = true;
-      logEv("Paste event detected in AI input ✓", "ok");
-      logEv("Tier 3 should fire (bytes ≥ 32).", "info");
-    }
-  });
+      const dt = new DataTransfer();
+      dt.setData("text/plain", payload);
+      ta.focus();
+      ta.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
+    } catch(e) {}
+    ta.value = payload;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    logEv("Auto-paste triggered (" + payload.length + "B) — Tier 3 should fire.", "ok");
+  }, 2000);
+
+
 window.addEventListener("DOMContentLoaded", () => { _onLoad(); });
 </script>
 </body>
